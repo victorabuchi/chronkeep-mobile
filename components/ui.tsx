@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Children, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { soft, tap } from '../lib/haptics';
@@ -50,7 +50,7 @@ export function Btn({ children, onPress, variant = 'primary', small, busy, disab
       accessibilityLabel={label}
       style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: small ? 32 : 36, paddingHorizontal: small ? 11 : 14, borderRadius: 9, borderWidth: 1, backgroundColor: tone.bg, borderColor: tone.border, opacity: busy || disabled ? 0.45 : 1, transform: [{ scale: pressed ? 0.95 : 1 }] }, style]}
     >
-      {typeof children === 'string' ? <Txt style={{ color: tone.fg, fontWeight: '700', fontSize: small ? 13 : 14 }}>{children}</Txt> : children}
+      {Children.toArray(children).every((x) => typeof x === 'string' || typeof x === 'number') ? <Txt style={{ color: tone.fg, fontWeight: '700', fontSize: small ? 13 : 14 }}>{children}</Txt> : children}
     </Pressable>
   );
 }
