@@ -1,4 +1,4 @@
-# ChronKeep Mobile
+<p align="center"><img src="assets/wordmark.png" alt="ChronKeep" width="280"></p>
 
 The phone app for [ChronKeep](https://github.com/victorabuchi/chronkeep), a calendar and to-do list that keeps reminding you until the assignment is done. Built with Expo SDK 57 (React Native) for iOS and Android, in the same design as the web app.
 
@@ -6,7 +6,18 @@ You sign in with your ChronKeep account (email and password, Google, or Apple). 
 
 The cloud is the web project's `cloud/` server (see its `docs/SETUP.md`). The phone talks to the address in `EXPO_PUBLIC_API_URL` (set per build profile in `eas.json`; the default is `https://chronkeep.onrender.com`).
 
-## What is in the app
+## `Tech stack`
+
+<p align="center">
+  <img src="https://img.shields.io/badge/-Expo-000020?style=flat&logo=expo&logoColor=white">
+  <img src="https://img.shields.io/badge/-React_Native-61DAFB?style=flat&logo=react&logoColor=black">
+  <img src="https://img.shields.io/badge/-TypeScript-3178C6?style=flat&logo=typescript&logoColor=white">
+  <img src="https://img.shields.io/badge/-Jest-C21325?style=flat&logo=jest&logoColor=white">
+  <img src="https://img.shields.io/badge/-Node.js-5FA04E?style=flat&logo=nodedotjs&logoColor=white">
+  <img src="https://img.shields.io/badge/-PostgreSQL-4169E1?style=flat&logo=postgresql&logoColor=white">
+</p>
+
+## `What is in the app`
 
 - **Calendar:** Day, 3 days and 7 days. The 7-day week scrolls sideways with the day heads and the hour labels pinned. It always opens at the start of the day (7:00 by default).
 - **Assignments on the calendar:** an assignment is a block in the hours, shaped like an event but in its own colour (orange; red when late), ending at its due time, with a tick. Same-title assignments due at the same minute merge into one block with a count that opens that day's list. A due time past the last hour shown sits at the edge of the day, labelled with the real time. The **Assignments** filter shows just these.
@@ -15,7 +26,7 @@ The cloud is the web project's `cloud/` server (see its `docs/SETUP.md`). The ph
 - **Calendar links:** follow a link (a university timetable, Moodle) and say what it contains: a **Timetable** (lessons, shown as events) or **Deadlines** (exercises and assignments, shown as tasks, due when each window closes). A saved link can be renamed, given another course, or switched between the two.
 - **Also:** quick add that reads a sentence ("Robotics report due Sunday 11pm"), search with add, the note, the bell (upcoming and earlier), History with on-time stats, a 30-day Bin, repeating reminders with Snooze and Done buttons on the notification, dark mode, backups, export and import.
 
-## Run it
+## `Run it`
 
 ```sh
 npm install
@@ -33,18 +44,16 @@ Useful while developing:
 
 Expo Go cannot fully run notifications. For those, use a development or production build.
 
-## How it is organised
+## `How it is organised`
 
-| Part | Where |
-| --- | --- |
-| Screens (Expo Router) | `app/` (`(app)/calendar`, `tasks`, `history`, `bin`, `customize`, `settings`; `login`, `signup`) |
-| Components | `components/` (calendar grids and the deadline strip, task rows and to-do cards, item sheet, top bar and its dropdowns) |
-| Rules shared with the web app (recurrence, sentence parsing, calendar files, reminder planning) | `lib/recur.ts`, `quick.ts`, `ics.ts`, `calsync.ts`, `schedule.ts` (the web's own tests run against them) |
-| Data on the phone (atomic saves, damaged-file recovery, daily backups) | `lib/store.ts`, `data.ts`, `actions.ts` |
-| Accounts and sync | `lib/auth.ts`, `session.ts`, `sync.ts`, `sync-run.ts` (`sync.ts` is tested against the server's `lib/sync.js`) |
-| Notifications | `lib/notify.ts` |
+- **Screens** (Expo Router): `app/` with `(app)/calendar`, `tasks`, `history`, `bin`, `customize`, `settings`, and `login`, `signup`.
+- **Components:** `components/` for the calendar grids, assignment blocks and deadline strip, task rows and to-do cards, the item sheet, and the top bar with its dropdowns.
+- **Rules shared with the web app** (recurrence, sentence parsing, calendar files, reminder planning): `lib/recur.ts`, `quick.ts`, `ics.ts`, `calsync.ts`, `schedule.ts`. The web's own tests run against them.
+- **Data on the phone** (atomic saves, damaged-file recovery, daily backups): `lib/store.ts`, `data.ts`, `actions.ts`.
+- **Accounts and sync:** `lib/auth.ts`, `session.ts`, `sync.ts`, `sync-run.ts`. `sync.ts` is tested against the server's `lib/sync.js`.
+- **Notifications:** `lib/notify.ts`.
 
-## Release with Expo (iOS and Android)
+## `Release with Expo (iOS and Android)`
 
 1. `npm install -g eas-cli` and `eas login`.
 2. `eas init` (creates the project and writes its id into `app.json`).
@@ -53,3 +62,12 @@ Expo Go cannot fully run notifications. For those, use a development or producti
 5. `eas submit --platform ios` and `eas submit --platform android`.
 
 The bundle id and package name are `com.victorabuchi.chronkeep`. Sign in with Apple must work for the iOS review (the app offers Google): see the web project's `docs/SETUP.md` for the credentials, and give the reviewers a demo account.
+
+## `Contact`
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/victor-abuchi-06b086338"><img src="https://img.shields.io/badge/-LinkedIn-0A66C2?style=flat&logo=linkedin&logoColor=white"></a>
+  <a href="mailto:contact@victorabuchi.com"><img src="https://img.shields.io/badge/-Email-EA4335?style=flat&logo=gmail&logoColor=white"></a>
+  <a href="https://victorabuchi.com"><img src="https://img.shields.io/badge/-Website-111827?style=flat&logo=safari&logoColor=white"></a>
+  <a href="https://github.com/victorabuchi"><img src="https://img.shields.io/badge/-GitHub-444444?style=flat&logo=github"></a>
+</p>
