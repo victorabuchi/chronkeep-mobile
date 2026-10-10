@@ -1,7 +1,9 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import { API_URL } from './config';
 import { UPLOADS } from './fs';
+import { getToken } from './session';
 import { shortId } from './ids';
 import type { Attachment } from './types';
 
@@ -29,7 +31,8 @@ export async function storeFile(itemId: string, f: Picked): Promise<Attachment> 
   const id = shortId();
   await FileSystem.makeDirectoryAsync(dirOf(itemId), { intermediates: true });
   await FileSystem.copyAsync({ from: f.uri, to: pathOf(itemId, id) });
-  return { id, name: f.name, size: f.size, type: f.type, addedAt: Date.now() };
+  // `local` until the file has been uploaded to the account (see uploadLocalFiles): the cloud has no bytes for it yet
+  return { id, name: f.name, size: f.size, type: f.type, addedAt: Date.now(), local: true };
 }
 
 export const removeFile = (itemId: string, attId: string) => FileSystem.deleteAsync(pathOf(itemId, attId), { idempotent: true });
@@ -38,7 +41,31 @@ export const removeFile = (itemId: string, attId: string) => FileSystem.deleteAs
 export async function openFile(itemId: string, a: Attachment): Promise<boolean> {
   if (!(await Sharing.isAvailableAsync())) return false;
   const tmp = `${FileSystem.cacheDirectory}${a.name}`;
+  // a file added on another device is fetched from the account the first time it is opened
+  if (!(await FileSystem.getInfoAsync(pathOf(itemId, a.id))).exists && !a.local) {
+    await FileSystem.makeDirectoryAsync(dirOf(itemId), { intermediates: true });
+    const res = await FileSystem.downloadAsync(`${API_URL}/api/files/${itemId}/${a.id}`, pathOf(itemId, a.id), { headers: { Authorization: `Bearer ${getToken() ?? ''}` } });
+    if (res.status !== 200) { await FileSystem.deleteAsync(pathOf(itemId, a.id), { idempotent: true }); return false; }
+  }
   await FileSystem.copyAsync({ from: pathOf(itemId, a.id), to: tmp }).catch(() => undefined);
   await Sharing.shareAsync(tmp, { mimeType: a.type });
   return true;
+}
+
+// Sends files that only exist on this phone to the account, one by one. Returns what to put in the item in their place:
+// the cloud's own record of each file (it picks the file's id), with the local copy moved to that id.
+export async function uploadLocalFiles(itemId: string, list: Attachment[]): Promise<Record<string, Attachment>> {
+  const done: Record<string, Attachment> = {};
+  for (const a of list.filter((x) => x.local)) {
+    try {
+      const res = await FileSystem.uploadAsync(`${API_URL}/api/items/${itemId}/files?name=${encodeURIComponent(a.name)}`, pathOf(itemId, a.id), {
+        httpMethod: 'POST', uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT, headers: { Authorization: `Bearer ${getToken() ?? ''}`, 'Content-Type': a.type || 'application/octet-stream' },
+      });
+      if (res.status !== 200) continue;
+      const meta = JSON.parse(res.body) as Attachment;
+      await FileSystem.moveAsync({ from: pathOf(itemId, a.id), to: pathOf(itemId, meta.id) });
+      done[a.id] = { id: meta.id, name: meta.name, size: meta.size, type: meta.type, addedAt: meta.addedAt };
+    } catch { /* offline or too large: tried again next sync */ }
+  }
+  return done;
 }

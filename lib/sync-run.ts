@@ -3,6 +3,7 @@ import { emptyData } from './store';
 import { getData, mutate, onChange, replaceAll } from './data';
 import { api, ApiError } from './http';
 import { getToken, setToken, useToken } from './session';
+import { uploadLocalFiles } from './files';
 import { pending, receive, type Reply } from './sync';
 import { useSyncExternalStore } from 'react';
 
@@ -27,6 +28,7 @@ export function syncNow(): Promise<boolean> {
       if (p.data !== before) mutate(() => p.data);
       const reply = await api<Reply>('/api/sync', { method: 'POST', body: { cursor: before.sync.cursor, changes: p.changes }, timeout: 60000 });
       mutate((d) => receive(d, p.sent, reply));
+      await uploadFiles();
       setStatus({ lastOk: Date.now(), error: '' });
       return true;
     } catch (e) {
@@ -38,6 +40,16 @@ export function syncNow(): Promise<boolean> {
     }
   })();
   return running;
+}
+
+// Files added on this phone go up once their item is in the account.
+async function uploadFiles(): Promise<void> {
+  for (const it of getData().items) {
+    if (!it.attachments.some((a) => a.local) || getData().sync.fp[it.id] === undefined) continue;
+    const done = await uploadLocalFiles(it.id, it.attachments);
+    if (!Object.keys(done).length) continue;
+    mutate((d) => ({ ...d, items: d.items.map((x) => (x.id === it.id ? { ...x, attachments: x.attachments.map((a) => done[a.id] ?? a) } : x)) }));
+  }
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
