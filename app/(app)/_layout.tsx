@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppTabBar, { tabsHeight } from '../../components/AppTabBar';
 import TopBar from '../../components/TopBar';
+import ItemSheet from '../../components/ItemSheet';
 import BurstLayer from '../../components/BurstLayer';
 import { ToastProvider } from '../../components/ui';
 
@@ -19,6 +20,7 @@ export default function AppLayout() {
         <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
       </Tabs>
       <BurstLayer />
+      <ItemSheet />
     </ToastProvider>
   );
 }
