@@ -38,6 +38,8 @@ const replanSoon = (ms = 800) => { if (planTimer) clearTimeout(planTimer); planT
 const persistSoon = () => { if (saveTimer) clearTimeout(saveTimer); saveTimer = setTimeout(() => void persistNow(), 300); };
 
 export const getData = () => state;
+// For things that react to every change (sync): returns a function that stops listening.
+export const onChange = (cb: () => void) => { listeners.add(cb); return () => { listeners.delete(cb); }; };
 export const isReady = () => ready;
 export const loadMessage = () => loadNote;
 

@@ -11,6 +11,9 @@ import * as commands from '../../lib/commands';
 import { backups, useData } from '../../lib/data';
 import { fmtDay } from '../../lib/dates';
 import { shareText } from '../../lib/share';
+import { deleteCloudAccount, signOutAndWipe, syncNow, useSyncStatus } from '../../lib/sync-run';
+import { useToken } from '../../lib/session';
+import { ago } from '../../lib/dates';
 import { useTheme } from '../../lib/theme-context';
 
 const backupLabel = (n: string) => {
@@ -28,6 +31,7 @@ export default function Settings() {
   const toast = useToast();
   const profile = useData((d) => d.profile);
   const [name, setName] = useState(profile.name), [email, setEmail] = useState(profile.email), [phone, setPhone] = useState(profile.phone), [photo, setPhoto] = useState(profile.photo);
+  const token = useToken(), sync = useSyncStatus();
   const [msg, setMsg] = useState(''), [list, setList] = useState<Array<{ name: string; at: number }>>([]), [bMsg, setBMsg] = useState(''), [confirm, setConfirm] = useState('');
   const loadBackups = () => void backups.list().then(setList);
   useEffect(loadBackups, []);
@@ -61,12 +65,30 @@ export default function Settings() {
   const backUp = async () => { await backups.now(stamp()); loadBackups(); setBMsg('Backed up'); setTimeout(() => setBMsg(''), 2500); };
 
   const need = (profile.email || 'DELETE').toLowerCase(), ok = confirm.trim().toLowerCase() === need;
-  const del = async () => { await backups.now(`pre-delete-${Date.now()}`); commands.deleteEverything(); setConfirm(''); setName(''); setEmail(''); setPhone(''); setPhoto(''); toast.show('Your account was deleted'); };
+  const del = async () => {
+    await backups.now(`pre-delete-${Date.now()}`);
+    if (token) { try { await deleteCloudAccount(confirm.trim()); } catch (e) { toast.show((e as Error).message, { error: true }); return; } } else commands.deleteEverything();
+    setConfirm(''); setName(''); setEmail(''); setPhone(''); setPhoto(''); toast.show('Your account was deleted');
+  };
+  const signOut = () => Alert.alert('Sign out?', 'Your data stays in your account. It is removed from this phone, and comes back when you sign in again.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Sign out', style: 'destructive', onPress: () => void signOutAndWipe() },
+  ]);
 
   const Box = ({ title, children }: { title: string; children: React.ReactNode }) => <Card style={{ gap: 12, padding: 14 }}><CardTitle>{title}</CardTitle>{children}</Card>;
   return (
     <Screen>
       <PageHead eyebrow="Your account" title="Settings" />
+      {token ? (
+        <Box title="Account">
+          <Note>Your calendar and tasks are kept in your account, so the web and this phone show the same things.</Note>
+          <Txt style={{ fontSize: 13, color: sync.error ? c.neg : c.muted }}>{sync.running ? 'Syncing…' : sync.error ? sync.error : sync.lastOk ? `Synced ${ago(sync.lastOk)}` : 'Waiting to sync'}</Txt>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <Btn variant="ghost" small busy={sync.running} onPress={() => void syncNow()}>Sync now</Btn>
+            <Btn variant="ghost" small onPress={signOut}>Sign out</Btn>
+          </View>
+        </Box>
+      ) : null}
       <Box title="Profile">
         <Field label="Profile picture">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -104,7 +126,7 @@ export default function Settings() {
       </Box>
       <Card style={{ gap: 12, padding: 14, borderColor: c.negLine }}>
         <CardTitle>Delete account</CardTitle>
-        <Note>Erases your profile, settings, tasks, events and note from this phone right away. A backup is kept first. Export your data first if you want a copy.</Note>
+        <Note>{token ? 'Erases your account, with your profile, settings, tasks, events and note, from ChronKeep everywhere, right away. Export your data first if you want a copy.' : 'Erases your profile, settings, tasks, events and note from this phone right away. A backup is kept first. Export your data first if you want a copy.'}</Note>
         <Field label={profile.email ? `Type ${profile.email} to confirm` : 'Type DELETE to confirm'}><Input value={confirm} onChangeText={setConfirm} autoCapitalize="none" autoCorrect={false} /></Field>
         <View style={{ alignSelf: 'flex-start' }}><Btn variant="solidDanger" disabled={!ok} onPress={del}>Delete my account</Btn></View>
       </Card>

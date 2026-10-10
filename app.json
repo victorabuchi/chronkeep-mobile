@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.victorabuchi.chronkeep",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -62,7 +63,10 @@
           "icon": "./assets/notification-icon.png"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "extra": {
       "router": {}
