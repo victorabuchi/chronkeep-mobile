@@ -28,7 +28,7 @@ export function updateItem(d: AppData, id: string, patch: Partial<Item>, now = D
 export function removeItem(d: AppData, id: string, now = Date.now()): R<{ gone: TrashItem | null }> {
   const it = d.items.find((x) => x.id === id);
   if (!it) return { data: d, gone: null };
-  const gone: TrashItem = { ...it, deletedAt: now };
+  const gone: TrashItem = { ...it, deletedAt: now, updatedAt: now };
   const ignored = it.source ? [...d.ignored.slice(-4999), `${it.source.feed}|${it.source.key}`] : d.ignored;
   return { data: { ...d, items: d.items.filter((x) => x.id !== id), trash: [gone, ...d.trash].slice(0, 200), ignored }, gone };
 }

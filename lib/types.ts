@@ -8,7 +8,7 @@ export type Repeat = 'none' | 'daily' | 'weekly' | 'monthly';
 // and repeats every `every` minutes. The latest rule that has started wins.
 export type Nudge = { from: number | 'day'; every: number };
 export type Subtask = { id: string; text: string; done: boolean };
-export type Attachment = { id: string; name: string; size: number; type: string; addedAt: number };
+export type Attachment = { id: string; name: string; size: number; type: string; addedAt: number; local?: boolean };
 
 export type Item = {
   id: string;
@@ -66,6 +66,14 @@ export type Feed = { id: string; name: string; url: string; category: string; en
 // A notification the phone has been asked to show (kept so "Earlier" can list what has gone by).
 export type Planned = { id: string; at: number; title: string; body: string; itemId: string | null; date: string; kind: 'reminder' | 'repeat' | 'overdue' | 'summary' | 'test' | 'action' };
 
+// Bookkeeping for keeping the phone and the cloud the same (see lib/sync.ts).
+export type SyncState = {
+  cursor: number; // the last cloud revision this phone has seen
+  fp: Record<string, string>; // fingerprint of every item as last synced, to notice what changed here
+  partFp: Record<string, string>; // the same for settings, profile, note, calendars
+  partAt: Record<string, number>; // when each of those last changed
+};
+
 export type AppData = {
   settings: Settings;
   profile: Profile;
@@ -76,4 +84,5 @@ export type AppData = {
   snoozed: Record<string, number>;
   notepad: { text: string; at: string | null };
   log: Planned[];
+  sync: SyncState;
 };

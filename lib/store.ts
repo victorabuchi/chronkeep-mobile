@@ -24,6 +24,7 @@ export const emptyData = (): AppData => ({
   settings: defaultSettings(),
   profile: { name: '', email: '', phone: '', photo: '' },
   items: [], trash: [], feeds: [], ignored: [], snoozed: {}, notepad: { text: '', at: null }, log: [],
+  sync: { cursor: 0, fp: {}, partFp: {}, partAt: {} },
 });
 
 // Turns whatever was saved (or imported from the web app's export) into the current shape.
@@ -55,6 +56,7 @@ export function normalize(raw: unknown): AppData {
     snoozed: r.snoozed && typeof r.snoozed === 'object' ? r.snoozed : {},
     notepad: r.notepad && typeof r.notepad.text === 'string' ? { text: r.notepad.text, at: r.notepad.at ?? null } : { text: '', at: null },
     log: Array.isArray(r.log) ? (r.log as Planned[]) : [],
+    sync: { ...d.sync, ...(r.sync && typeof r.sync === 'object' ? r.sync : {}) },
   };
 }
 
