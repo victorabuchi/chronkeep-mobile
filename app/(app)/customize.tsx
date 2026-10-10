@@ -6,21 +6,51 @@ import ColorField from '../../components/ColorField';
 import { TimeField } from '../../components/forms';
 import NudgeEditor, { REM } from '../../components/NudgeEditor';
 import Screen from '../../components/Screen';
-import { Btn, Card, CardTitle, Chip, Check, Field, IBtn, Input, Note, PageHead, Select, Txt, useToast } from '../../components/ui';
+import { Btn, Card, CardTitle, Chip, Check, Field, IBtn, Input, Note, PageHead, Select, Sheet, Txt, useToast } from '../../components/ui';
 import * as commands from '../../lib/commands';
 import { useData } from '../../lib/data';
 import { ago } from '../../lib/dates';
 import { askPermission, notifyState, sendTest, type NotifyState } from '../../lib/notify';
 import { shareText } from '../../lib/share';
-import type { Nudge, Settings } from '../../lib/types';
+import type { Feed, FeedKind, Nudge, Settings } from '../../lib/types';
 import { useTheme } from '../../lib/theme-context';
 
 const ACCENT = '#3b5bdb';
 const syncText = (r: { created: number; updated: number; removed: number }) => (r.created || r.updated || r.removed ? `${r.created} added, ${r.updated} updated, ${r.removed} removed` : 'Already up to date');
+const KIND_OPTIONS = [{ id: 'event', label: 'Timetable: lessons and events, shown in the hours' }, { id: 'assignment', label: 'Deadlines: exercises and assignments, shown as tasks' }];
 const num = (v: string, fallback: number) => (v.trim() === '' || Number.isNaN(+v) ? fallback : Math.trunc(+v));
 
 function Card2({ title, children }: { title: string; children: React.ReactNode }) {
   return <Card style={{ gap: 12, padding: 14 }}><CardTitle>{title}</CardTitle>{children}</Card>;
+}
+
+// Edit a saved calendar: its name, its course and what it contains. Changing what it contains reads it again.
+function FeedEditor({ feed, courses, onClose }: { feed: Feed | null; courses: string[]; onClose: () => void }) {
+  const toast = useToast();
+  const [name, setName] = useState(feed?.name ?? ''), [category, setCategory] = useState(feed?.category ?? ''), [kind, setKind] = useState<FeedKind>(feed?.kind ?? 'event'), [busy, setBusy] = useState(false), [err, setErr] = useState('');
+  useEffect(() => { if (feed) { setName(feed.name); setCategory(feed.category); setKind(feed.kind ?? 'event'); setErr(''); } }, [feed]);
+  const save = async () => {
+    if (!feed) return;
+    if (!name.trim()) return setErr('Give the calendar a name.');
+    setBusy(true); setErr('');
+    try {
+      const r = await commands.editFeed(feed.id, { name, category, kind });
+      toast.show(r ? `${name.trim()}: now ${kind === 'assignment' ? 'deadlines' : 'a timetable'}, ${syncText(r)}` : `${name.trim()} saved`);
+      onClose();
+    } catch (e) { setErr(`${(e as Error).message} The other changes are saved.`); }
+    setBusy(false);
+  };
+  const options = [{ id: '', label: 'No course' }, ...[...new Set([...courses, ...(category ? [category] : [])])].map((n) => ({ id: n, label: n }))];
+  return (
+    <Sheet open={!!feed} onClose={onClose} title="Edit calendar" footer={<><View style={{ flex: 1 }} /><Btn variant="ghost" onPress={onClose}>Cancel</Btn><Btn busy={busy} onPress={save}>Save</Btn></>}>
+      <View style={{ gap: 12 }}>
+        <Field label="Name"><Input value={name} onChangeText={setName} maxLength={60} /></Field>
+        <Field label="Course"><Select label="Course" value={category} onChange={setCategory} options={options} /></Field>
+        <Field label="What it contains" hint="Deadlines (Moodle exercises and assignments) become tasks, due when each one closes."><Select label="What it contains" value={kind} onChange={(v) => setKind(v as FeedKind)} options={KIND_OPTIONS} /></Field>
+        {err ? <Txt style={{ color: '#dc2626', fontSize: 12.5 }}>{err}</Txt> : null}
+      </View>
+    </Sheet>
+  );
 }
 
 export default function Customize() {
@@ -30,7 +60,7 @@ export default function Customize() {
   const [S, setS] = useState<Settings>(saved);
   const [msg, setMsg] = useState('');
   const [perm, setPerm] = useState<NotifyState>('off');
-  const [fName, setFName] = useState(''), [fUrl, setFUrl] = useState(''), [fCat, setFCat] = useState('Timetable'), [fMsg, setFMsg] = useState(''), [fBusy, setFBusy] = useState(false), [syncing, setSyncing] = useState('');
+  const [fName, setFName] = useState(''), [fUrl, setFUrl] = useState(''), [fCat, setFCat] = useState('Timetable'), [fKind, setFKind] = useState<FeedKind>('event'), [editing, setEditing] = useState<Feed | null>(null), [fMsg, setFMsg] = useState(''), [fBusy, setFBusy] = useState(false), [syncing, setSyncing] = useState('');
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => setS((s) => ({ ...s, [k]: v }));
   useEffect(() => { void notifyState().then(setPerm); }, []);
   // Adding a calendar can add a course in the background: take it in unless the courses are being edited here.
@@ -52,7 +82,7 @@ export default function Customize() {
 
   const addFeed = async () => {
     setFBusy(true); setFMsg('Adding…');
-    try { const r = await commands.addFeed(fName, fUrl, fCat); setFName(''); setFUrl(''); setFMsg(''); toast.show(`${fName.trim()}: ${r.created} event${r.created === 1 ? '' : 's'} added`); } catch (e) { setFMsg((e as Error).message || 'Could not add that.'); }
+    try { const r = await commands.addFeed(fName, fUrl, fCat, fKind); setFName(''); setFUrl(''); setFMsg(''); toast.show(`${fName.trim()}: ${r.created} event${r.created === 1 ? '' : 's'} added`); } catch (e) { setFMsg((e as Error).message || 'Could not add that.'); }
     setFBusy(false);
   };
   const sync = async (id: string, name: string) => {
@@ -67,7 +97,7 @@ export default function Customize() {
     const r = await DocumentPicker.getDocumentAsync({ type: ['text/calendar', 'text/plain', '*/*'], copyToCacheDirectory: true });
     if (r.canceled) return;
     const a = r.assets[0]!;
-    try { const res = commands.importIcs(a.name, await FileSystem.readAsStringAsync(a.uri), fCat); toast.show(`${a.name}: ${syncText(res)}`); } catch { setFMsg('Could not import that file.'); }
+    try { const res = commands.importIcs(a.name, await FileSystem.readAsStringAsync(a.uri), fCat, fKind); toast.show(`${a.name}: ${syncText(res)}`); } catch { setFMsg('Could not import that file.'); }
   };
   const exportIcs = async () => { if (!(await shareText('chronkeep.ics', commands.exportIcs(), 'text/calendar'))) setFMsg('Sharing is not available on this device.'); };
 
@@ -119,14 +149,15 @@ export default function Customize() {
           <View style={{ alignSelf: 'flex-start' }}><Btn variant="ghost" small onPress={() => set('categories', [...cats, { name: 'New course', color: '#888888' }])}>+ Add course</Btn></View>
         </Card2>
         <Card2 title="Calendars">
-          <Note>Follow a calendar link (your university timetable, Google Calendar...) and its events appear here and stay up to date. Links are kept on this phone only.</Note>
+          <Note>Follow a calendar link (your university timetable, Google Calendar...) and its events appear here and stay up to date. Links are kept in your account only.</Note>
           {feeds.length ? feeds.map((f) => (
             <View key={f.id} style={{ gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: c.line }}>
               <View>
                 <Txt style={{ fontWeight: '700' }}>{f.name}</Txt>
-                <Txt style={{ fontSize: 12, color: f.lastError ? c.neg : c.muted }}>{f.lastError ? f.lastError : `${f.count} event${f.count === 1 ? '' : 's'} · synced ${f.lastSync ? ago(f.lastSync) : 'never'} · ${f.category || 'no course'}`}</Txt>
+                <Txt style={{ fontSize: 12, color: f.lastError ? c.neg : c.muted }}>{f.lastError ? f.lastError : `${f.count} ${f.kind === 'assignment' ? 'deadline' : 'event'}${f.count === 1 ? '' : 's'} · ${f.kind === 'assignment' ? 'deadlines' : 'timetable'} · synced ${f.lastSync ? ago(f.lastSync) : 'never'} · ${f.category || 'no course'}`}</Txt>
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
+                <Btn variant="ghost" small onPress={() => setEditing(f)}>Edit</Btn>
                 <Btn variant="ghost" small busy={syncing === f.id} onPress={() => sync(f.id, f.name)}>{syncing === f.id ? 'Syncing…' : 'Sync'}</Btn>
                 <Btn variant="danger" small onPress={() => drop(f.id, f.name, f.count)}>Remove</Btn>
               </View>
@@ -136,6 +167,7 @@ export default function Customize() {
             <View style={{ gap: 8 }}>
               <Input value={fName} onChangeText={setFName} maxLength={60} placeholder="Name, for example UEF timetable" />
               <Input value={fUrl} onChangeText={setFUrl} placeholder="https://...  (a link ending in .ics, or an iCal link)" autoCapitalize="none" autoCorrect={false} keyboardType="url" />
+              <Select label="What it contains" value={fKind} onChange={(v) => setFKind(v as FeedKind)} options={KIND_OPTIONS} />
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                 <View style={{ flex: 1 }}><Select label="Course" value={fCat} onChange={setFCat} options={catOptions} /></View>
                 <Btn small busy={fBusy} onPress={addFeed}>Add calendar</Btn>
@@ -167,6 +199,7 @@ export default function Customize() {
           <Txt style={{ fontSize: 12.5, color: perm === 'blocked' ? c.neg : c.muted }}>{perm === 'on' ? 'Notifications are allowed on this phone.' : perm === 'blocked' ? 'Notifications are blocked. Open the phone settings and allow ChronKeep.' : perm === 'unsupported' ? 'Notifications are not available here.' : 'Notifications are off. Turn them on above.'}</Txt>
         </Card2>
       </Screen>
+      <FeedEditor feed={editing} courses={cats.map((x) => x.name)} onClose={() => setEditing(null)} />
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: c.glass }}>
         <Txt style={{ flex: 1, fontSize: 12.5, color: c.muted }}>{msg || (dirty ? 'Unsaved changes' : '')}</Txt>
         <Btn variant="ghost" onPress={discard} disabled={!dirty}>Discard changes</Btn>

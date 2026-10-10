@@ -5,7 +5,7 @@ import { uuid } from './ids';
 import { build } from './ics';
 import { emptyData, normalize } from './store';
 import { today } from './dates';
-import type { AppData, Feed, Item } from './types';
+import type { AppData, Feed, FeedKind, Item } from './types';
 
 // What the screens call. Each runs one of the pure changes in actions.ts on the live data and returns what the
 // screen needs for its toast.
@@ -35,17 +35,19 @@ export const setProfile = (patch: Partial<AppData['profile']>) => mutate((d) => 
 
 const ensureCategory = (d: AppData, name: string): AppData => (name && !d.settings.categories.some((c) => c.name === name) ? { ...d, settings: { ...d.settings, categories: [...d.settings.categories, { name, color: '#0e8fb0' }] } } : d);
 
-function applyText(feed: { id: string; category: string }, text: string, d: AppData) {
+// Reminders that new items of a kind usually get: deadlines get the assignment ones (with repeating reminders), lessons the event ones.
+function applyText(feed: { id: string; category: string; kind?: FeedKind }, text: string, d: AppData) {
   const db = { items: [...d.items], ignored: d.ignored };
-  const result = sync.importText(db, feed, text, { today: today(), reminders: d.settings.reminderDefaults.event });
+  const deadlines = feed.kind === 'assignment';
+  const result = sync.importText(db, feed, text, { today: today(), reminders: deadlines ? d.settings.reminderDefaults.assignment : d.settings.reminderDefaults.event, nudges: deadlines ? d.settings.nudgeDefaults.assignment : [] });
   return { db, result };
 }
 
 // Follows a calendar link: downloads it, brings its events in, and keeps the link for later syncs.
-export async function addFeed(name: string, url: string, category: string): Promise<sync.Result> {
+export async function addFeed(name: string, url: string, category: string, kind: FeedKind = 'event'): Promise<sync.Result> {
   if (!name.trim()) throw new Error('Give the calendar a name.');
   const text = await sync.fetchCalendar(url.trim());
-  const feed: Feed = { id: uuid(), name: name.trim().slice(0, 60), url: url.trim(), category: category.trim().slice(0, 40), enabled: true, lastSync: Date.now(), lastError: '', count: 0 };
+  const feed: Feed = { id: uuid(), name: name.trim().slice(0, 60), url: url.trim(), category: category.trim().slice(0, 40), kind, enabled: true, lastSync: Date.now(), lastError: '', count: 0 };
   let result!: sync.Result;
   mutate((d) => {
     const r = applyText(feed, text, d);
@@ -94,11 +96,25 @@ export function renameFeedCategory(id: string, category: string) {
   mutate((d) => ensureCategory({ ...d, feeds: d.feeds.map((f) => (f.id === id ? { ...f, category } : f)), items: d.items.map((i) => (i.source?.feed === id ? { ...i, category } : i)) }, category));
 }
 
+// Changes a saved calendar: its name, its course, and whether it holds lessons or deadlines. Changing the last reads the
+// calendar again, so its items change type right away (it can fail offline: the other changes are kept).
+export async function editFeed(id: string, patch: { name?: string; category?: string; kind?: FeedKind }): Promise<sync.Result | null> {
+  const feed = getData().feeds.find((f) => f.id === id);
+  if (!feed) throw new Error('That calendar is gone.');
+  if (patch.name !== undefined && patch.name.trim()) mutate((d) => ({ ...d, feeds: d.feeds.map((f) => (f.id === id ? { ...f, name: patch.name!.trim().slice(0, 60) } : f)) }));
+  if (patch.category !== undefined && patch.category !== (feed.category || '')) renameFeedCategory(id, patch.category.trim().slice(0, 40));
+  if (patch.kind && patch.kind !== (feed.kind ?? 'event')) {
+    mutate((d) => ({ ...d, feeds: d.feeds.map((f) => (f.id === id ? { ...f, kind: patch.kind } : f)) }));
+    return syncFeed(id);
+  }
+  return null;
+}
+
 // A calendar file (.ics) chosen on the phone.
-export function importIcs(name: string, text: string, category: string): sync.Result {
+export function importIcs(name: string, text: string, category: string, kind: FeedKind = 'event'): sync.Result {
   let result!: sync.Result;
   mutate((d) => {
-    const r = applyText({ id: 'file:' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), category }, text, d);
+    const r = applyText({ id: 'file:' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), category, kind }, text, d);
     result = r.result;
     return ensureCategory({ ...d, items: r.db.items }, category);
   });

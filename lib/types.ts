@@ -61,7 +61,9 @@ export type Settings = {
 
 export type Profile = { name: string; email: string; phone: string; photo: string };
 
-export type Feed = { id: string; name: string; url: string; category: string; enabled: boolean; lastSync: number; lastError: string; count: number };
+// A calendar holds lessons ('event': shown in the hours) or deadlines ('assignment': exercises and assignments, shown as tasks).
+export type FeedKind = 'event' | 'assignment';
+export type Feed = { id: string; name: string; url: string; category: string; kind?: FeedKind; enabled: boolean; lastSync: number; lastError: string; count: number };
 
 // A notification the phone has been asked to show (kept so "Earlier" can list what has gone by).
 export type Planned = { id: string; at: number; title: string; body: string; itemId: string | null; date: string; kind: 'reminder' | 'repeat' | 'overdue' | 'summary' | 'test' | 'action' };
