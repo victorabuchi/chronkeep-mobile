@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, Pressable, View } from 'react-native';
+import { Alert, Image, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as commands from '../lib/commands';
 import { useData } from '../lib/data';
@@ -11,7 +11,6 @@ import { ymd } from '../lib/recur';
 import { useTheme } from '../lib/theme-context';
 import { openItem, setUI } from '../lib/ui-state';
 import I from './Icon';
-import Mark from './Mark';
 import NotifBanner from './NotifBanner';
 import NoteSheet from './topbar/NoteSheet';
 import NotifSheet from './topbar/NotifSheet';
@@ -24,6 +23,8 @@ export default function TopBar() {
   const insets = useSafeAreaInsets();
   const router = useRouter(), toast = useToast();
   const profile = useData((d) => d.profile);
+  // On a narrow screen the wordmark leaves no room for the search box, so it is an icon until tapped.
+  const narrow = useWindowDimensions().width < 440, [searchOpen, setSearchOpen] = useState(false);
   const [searching, setSearching] = useState(false), [note, setNote] = useState(false), [bell, setBell] = useState(false), [menu, setMenu] = useState(false);
   const initials = (profile.name || 'C').split(/\s+/).map((w) => w[0]).slice(0, 2).join('').toUpperCase();
   const box = { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: c.line, borderRadius: 9, backgroundColor: c.card } as const;
@@ -32,11 +33,12 @@ export default function TopBar() {
     <View style={{ paddingTop: insets.top, borderBottomWidth: 1, borderBottomColor: c.line, backgroundColor: c.glass, zIndex: 10 }}>
       <View style={{ height: 56, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10 }}>
         <Pressable onPress={() => { tap(); setUI({ cur: ymd(new Date()) }); router.navigate('/calendar'); }} accessibilityRole="button" accessibilityLabel="ChronKeep home" style={{ padding: 2, display: searching ? 'none' : 'flex' }}>
-          <Mark size={32} />
+          <Image source={require('../assets/wordmark.png')} resizeMode="contain" accessibilityLabel="ChronKeep" style={{ width: 96, height: 18, tintColor: undefined }} />
         </Pressable>
-        <SearchBar onFocusChange={setSearching} />
+        {narrow && !searchOpen ? <View style={{ flex: 1 }} /> : <SearchBar autoFocus={narrow} onFocusChange={(f) => { setSearching(f); if (!f) setSearchOpen(false); }} />}
         {!searching ? (
           <>
+            {narrow && !searchOpen ? <IBtn icon="search" label="Search" onPress={() => setSearchOpen(true)} /> : null}
             <IBtn icon="note" label="Note" onPress={() => setNote(true)} />
             <IBtn icon="bell" label="Notifications" onPress={() => setBell(true)} />
             <Pressable onPress={() => { tap(); openItem(null); }} accessibilityRole="button" accessibilityLabel="New" style={{ ...box, backgroundColor: c.b, borderColor: c.b }}>

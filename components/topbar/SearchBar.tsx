@@ -14,7 +14,7 @@ import { Txt, useToast } from '../ui';
 import * as commands from '../../lib/commands';
 
 // Search on any date, with an "Add …" row at the end that reads the text as a new item.
-export default function SearchBar({ onFocusChange }: { onFocusChange: (focused: boolean) => void }) {
+export default function SearchBar({ onFocusChange, autoFocus }: { onFocusChange: (focused: boolean) => void; autoFocus?: boolean }) {
   const { c } = useTheme();
   const router = useRouter(), toast = useToast();
   const settings = useData((d) => d.settings), items = useData((d) => d.items);
@@ -37,7 +37,7 @@ export default function SearchBar({ onFocusChange }: { onFocusChange: (focused: 
     <View style={{ flex: 1 }}>
       <View style={{ height: 36, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderWidth: 1, borderColor: focus ? c.b : c.line, borderRadius: 9, backgroundColor: c.card }}>
         <I d="search" size={15} color={c.muted} />
-        <TextInput value={q} onChangeText={setQ} onFocus={() => { setFocus(true); onFocusChange(true); }} onBlur={() => setTimeout(() => { setFocus(false); onFocusChange(false); }, 150)} placeholder="Search or add" placeholderTextColor={c.muted} returnKeyType="done" onSubmitEditing={() => (found.length ? pick(found[0]!) : add())} style={{ flex: 1, padding: 0, color: c.ink, fontFamily: 'Figtree_500Medium', fontSize: 14 }} />
+        <TextInput autoFocus={autoFocus} value={q} onChangeText={setQ} onFocus={() => { setFocus(true); onFocusChange(true); }} onBlur={() => setTimeout(() => { setFocus(false); onFocusChange(false); }, 150)} placeholder="Search or add" placeholderTextColor={c.muted} returnKeyType="done" onSubmitEditing={() => (found.length ? pick(found[0]!) : add())} style={{ flex: 1, padding: 0, color: c.ink, fontFamily: 'Figtree_500Medium', fontSize: 14 }} />
       </View>
       {focus && raw ? (
         <View style={{ position: 'absolute', top: 42, left: 0, right: -4, zIndex: 20, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: c.card, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.14, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 8 }}>
