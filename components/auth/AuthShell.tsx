@@ -1,8 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, TextInput, View, type TextInputProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import I from '../Icon';
-import Mark from '../Mark';
 import { Txt } from '../ui';
 
 // The sign-in screens, drawn like the web's sign-in pages: a dark hero with the logo and a heading, one white card.
@@ -18,10 +17,7 @@ export function AuthShell({ title, lede, below, children }: { title: string; led
       <View pointerEvents="none" style={{ position: 'absolute', top: -80, right: -140, width: 320, height: 320, borderRadius: 160, backgroundColor: 'rgba(124, 92, 240, 0.28)', opacity: 0.5 }} />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: 'center', gap: 22, paddingHorizontal: 16, paddingTop: Math.max(insets.top, 24) + 28, paddingBottom: insets.bottom + 28 }}>
         <View style={{ alignItems: 'center', gap: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Mark size={36} />
-            <Txt style={{ color: '#fff', fontSize: 22, lineHeight: 28, fontWeight: '800', letterSpacing: -0.44 }}>ChronKeep</Txt>
-          </View>
+          <Image source={require('../../assets/wordmark-light.png')} resizeMode="contain" accessibilityLabel="ChronKeep" style={{ width: 180, height: 34 }} />
           <Txt style={{ color: '#fff', fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.84, marginTop: 6, textAlign: 'center' }}>{title}</Txt>
           {lede ? <Txt style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, textAlign: 'center', maxWidth: 320 }}>{lede}</Txt> : null}
         </View>
