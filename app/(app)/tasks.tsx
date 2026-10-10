@@ -19,11 +19,12 @@ export default function Tasks() {
   const settings = useData((d) => d.settings), items = useData((d) => d.items);
   const typeF = useUI((u) => u.typeF), now = useNow(30000), act = useItemActions();
   const [showDone, setShowDone] = useState(false);
-  const g = taskGroups(items, typeF === 'event' ? 'all' : typeF, settings, now);
+  // To-do = everything still to do (assignments and to-dos), as big cards; the other filters pick one type.
+  const g = taskGroups(items, typeF === 'event' || typeF === 'todo' ? 'all' : typeF, settings, now);
   // Same-title tasks on one day are one row with a count; ticking it ticks them all.
   // To-dos are shown as big cards with every detail; assignments as compact rows.
   const cards = typeF === 'todo';
-  const cardsOf = (list: typeof g.done) => list.map(({ it, ds }) => <TaskCard key={it.id + (ds ?? '')} it={it} ds={ds} settings={settings} now={now} onOpen={() => openItem(it, undefined, ds ?? undefined)} onTick={() => act.tick(it, ds ?? '', 220)} onStep={(sid) => act.step(it, sid, ds ?? '')} />);
+  const cardsOf = (list: typeof g.done) => mergeEntries(list).map((grp) => { const { it, ds } = grp[0]!; return <TaskCard key={it.id + (ds ?? '')} it={it} ds={ds} group={grp.map((x) => x.it)} settings={settings} now={now} onOpen={() => openItem(it, undefined, ds ?? undefined)} onTick={() => grp.forEach((x) => act.tick(x.it, x.ds ?? '', 220))} onStep={(sid) => act.step(it, sid, ds ?? '')} />; });
   const rows = (list: typeof g.done) => mergeEntries(list).map((grp) => { const { it, ds } = grp[0]!; return <TaskRow key={it.id + (ds ?? '')} it={it} ds={ds} group={grp.map((x) => x.it)} settings={settings} now={now} onOpen={() => openItem(it, undefined, ds ?? undefined)} onTick={() => grp.forEach((x) => act.tick(x.it, x.ds ?? '', 220))} onStep={(sid) => act.step(it, sid, ds ?? '')} />; });
   return (
     <Screen>

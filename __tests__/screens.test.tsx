@@ -61,5 +61,7 @@ test('To-dos show as big cards with their details, and the Assignments filter ke
   expect(screen.getByText('1 of 2 steps')).toBeTruthy();
   expect(screen.getByText('Book the hostel')).toBeTruthy();
   expect(screen.getByText('1 day before')).toBeTruthy();
+  // and the To-do page includes the open assignments too
+  expect(screen.getByText('Robotics report')).toBeTruthy();
   setUI({ typeF: 'all' });
 });
