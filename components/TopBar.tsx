@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Alert, Image, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as commands from '../lib/commands';
 import { useData } from '../lib/data';
 import { tap } from '../lib/haptics';
 import { sendTest } from '../lib/notify';
+import { signOutAndWipe } from '../lib/sync-run';
 import { ymd } from '../lib/recur';
 import { useTheme } from '../lib/theme-context';
 import { openItem, setUI } from '../lib/ui-state';
@@ -55,6 +56,10 @@ export default function TopBar() {
           <Txt style={{ color: c.muted, marginBottom: 6 }}>{profile.email || 'Personal planner'}</Txt>
           <Btn variant="ghost" onPress={() => go('/settings')}>Settings</Btn>
           <Btn variant="ghost" onPress={() => go('/customize')}>Customize</Btn>
+          <Btn variant="ghost" onPress={() => {
+            setMenu(false);
+            Alert.alert('Sign out?', 'Your data stays in your account. It is removed from this phone, and comes back when you sign in again.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: () => void signOutAndWipe() }]);
+          }}>Sign out</Btn>
           <Btn variant="ghost" onPress={() => { setMenu(false); void sendTest().then(() => toast.show('Test notification sent')); }}>Send test notification</Btn>
         </View>
       </Sheet>
