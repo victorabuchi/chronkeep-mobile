@@ -4,21 +4,39 @@ import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 import { API_URL, APP_SCHEME_URL } from './config';
 import { api, ApiError } from './http';
+import * as SecureStore from 'expo-secure-store';
+import { emptyData } from './store';
+import { replaceAll } from './data';
 import { setToken } from './session';
 
 // Signing in: email and password, Google (in the browser, handed back to the app), and Apple (native on iPhone, in the
 // browser on Android). All of them end with a token from the cloud.
 
 export type Providers = { google: boolean; apple: boolean };
+// Every sign-in ends here. If this phone last held a different account's data (a session that ran out, a shared phone),
+// that data is cleared first, so one person's items can never be sent to another person's account.
+async function finishSignIn(token: string): Promise<void> {
+  try {
+    const res = await fetch(`${API_URL}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
+    const me = (await res.json()) as { id?: string };
+    if (me.id) {
+      const prev = await SecureStore.getItemAsync('chronkeep.account');
+      if (prev && prev !== me.id) replaceAll(emptyData());
+      await SecureStore.setItemAsync('chronkeep.account', me.id);
+    }
+  } catch { /* offline right after sign-in is unlikely; the token still works */ }
+  await setToken(token);
+}
+
 export const providers = () => api<Providers>('/api/mobile/providers', { auth: false }).catch((): Providers => ({ google: false, apple: false }));
 
 export async function logIn(email: string, password: string): Promise<void> {
   const { token } = await api<{ token: string }>('/api/mobile/login', { method: 'POST', auth: false, body: { email, password } });
-  await setToken(token);
+  await finishSignIn(token);
 }
 export async function signUp(name: string, email: string, password: string): Promise<void> {
   const { token } = await api<{ token: string }>('/api/mobile/signup', { method: 'POST', auth: false, body: { name, email, password } });
-  await setToken(token);
+  await finishSignIn(token);
 }
 
 const b64url = (s: string) => s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -36,7 +54,7 @@ async function browserSignIn(provider: 'google' | 'apple'): Promise<void> {
   const code = q.get('code');
   if (!code) throw new ApiError('Sign-in did not finish. Try again.', 0);
   const { token } = await api<{ token: string }>('/api/mobile/exchange', { method: 'POST', auth: false, body: { code, verifier } });
-  await setToken(token);
+  await finishSignIn(token);
 }
 export const googleSignIn = () => browserSignIn('google');
 
@@ -53,6 +71,6 @@ export async function appleSignIn(): Promise<void> {
   }
   const name = [cred.fullName?.givenName, cred.fullName?.familyName].filter(Boolean).join(' ');
   const { token } = await api<{ token: string }>('/api/mobile/apple', { method: 'POST', auth: false, body: { identityToken: cred.identityToken, nonce, name } });
-  await setToken(token);
+  await finishSignIn(token);
 }
 export const appleAvailable = () => (Platform.OS === 'ios' ? AppleAuthentication.isAvailableAsync() : Promise.resolve(true));
