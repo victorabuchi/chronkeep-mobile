@@ -87,8 +87,8 @@ export function Segment<T extends string>({ options, value, onChange, wide }: { 
       {options.map((o) => {
         const on = o.id === value;
         return (
-          <Pressable key={o.id} onPress={() => { tap(); onChange(o.id); }} accessibilityRole="button" accessibilityState={{ selected: on }} style={[{ paddingVertical: wide ? 8 : 6, paddingHorizontal: 12, borderRadius: 7, backgroundColor: on ? c.bt : 'transparent', alignItems: 'center', justifyContent: 'center' }, wide && { flex: 1 }]}>
-            <Txt style={{ fontWeight: '700', color: on ? c.b : c.muted }}>{o.label}</Txt>
+          <Pressable key={o.id} onPress={() => { tap(); onChange(o.id); }} accessibilityRole="button" accessibilityState={{ selected: on }} style={[{ paddingVertical: wide ? 8 : 6, paddingHorizontal: wide ? 6 : 12, borderRadius: 7, backgroundColor: on ? c.bt : 'transparent', alignItems: 'center', justifyContent: 'center' }, wide && { flex: 1 }]}>
+            <Txt numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={{ fontWeight: '700', color: on ? c.b : c.muted }}>{o.label}</Txt>
           </Pressable>
         );
       })}
