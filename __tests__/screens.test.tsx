@@ -49,3 +49,17 @@ test('Bin shows a deleted item and can bring it back', async () => {
   await fireEvent.press(screen.getByText('Restore'));
   expect(getData().items.some((i) => i.id === id)).toBe(true);
 });
+
+test('To-dos show as big cards with their details, and the Assignments filter keeps the compact rows', async () => {
+  const { setUI } = require('../lib/ui-state');
+  const { addItem } = require('../lib/commands');
+  addItem({ type: 'todo', title: 'Plan the trip', date: '2026-10-14', notes: 'Trains and a hostel', subtasks: [{ id: 's1', text: 'Book the hostel', done: false }, { id: 's2', text: 'Compare trains', done: true }], reminders: [1440] });
+  setUI({ typeF: 'todo' });
+  await render(wrap(<Tasks />));
+  expect(screen.getByText('Plan the trip')).toBeTruthy();
+  expect(screen.getByText('Trains and a hostel')).toBeTruthy();
+  expect(screen.getByText('1 of 2 steps')).toBeTruthy();
+  expect(screen.getByText('Book the hostel')).toBeTruthy();
+  expect(screen.getByText('1 day before')).toBeTruthy();
+  setUI({ typeF: 'all' });
+});
