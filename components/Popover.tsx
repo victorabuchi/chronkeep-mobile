@@ -9,7 +9,7 @@ import { Txt } from './ui';
 // It opens with a quick scale and fade from that corner; a tap anywhere else closes it.
 export const TOP_BAR = 56;
 
-export default function Popover({ open, onClose, width = 288, maxHeight, children }: { open: boolean; onClose: () => void; width?: number; maxHeight?: number; children: ReactNode }) {
+export default function Popover({ open, onClose, width = 300, maxHeight, children }: { open: boolean; onClose: () => void; width?: number; maxHeight?: number; children: ReactNode }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets(), screen = useWindowDimensions();
   const t = useRef(new Animated.Value(0)).current;
@@ -17,19 +17,19 @@ export default function Popover({ open, onClose, width = 288, maxHeight, childre
     if (open) Animated.timing(t, { toValue: 1, duration: 170, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
     else t.setValue(0);
   }, [open, t]);
-  const w = Math.min(width, screen.width - 20), top = insets.top + TOP_BAR - 2;
+  const w = Math.min(width, screen.width - 24), top = insets.top + TOP_BAR + 4;
   return (
     <Modal visible={open} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
       <Animated.View
         style={{
-          position: 'absolute', top, right: 10, width: w, maxHeight: maxHeight ?? screen.height - top - 90,
-          borderWidth: 1, borderColor: c.line, borderRadius: 14, backgroundColor: c.card, overflow: 'hidden',
-          shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12,
+          position: 'absolute', top, right: 12, width: w, maxHeight: maxHeight ?? screen.height - top - 24, padding: 8,
+          borderWidth: 1, borderColor: c.line, borderRadius: 14, backgroundColor: c.card,
+          shadowColor: '#14181f', shadowOpacity: 0.35, shadowRadius: 30, shadowOffset: { width: 0, height: 24 }, elevation: 16,
           opacity: t, transform: [{ translateX: t.interpolate({ inputRange: [0, 1], outputRange: [w * 0.06, 0] }) }, { translateY: t.interpolate({ inputRange: [0, 1], outputRange: [-10, 0] }) }, { scale: t.interpolate({ inputRange: [0, 1], outputRange: [0.94, 1] }) }],
         }}
       >
-        <ScrollView bounces={false} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{children}</ScrollView>
+        <ScrollView bounces={false} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>{children}</ScrollView>
       </Animated.View>
     </Modal>
   );
@@ -38,11 +38,11 @@ export default function Popover({ open, onClose, width = 288, maxHeight, childre
 // One row of a menu: an icon and a label.
 export function MenuItem({ icon, label, onPress, danger }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
   const { c } = useTheme();
-  const tone = danger ? c.neg : c.ink;
+  const tone = c.ink; void danger;
   return (
-    <Pressable onPress={onPress} accessibilityRole="menuitem" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 46, paddingHorizontal: 16, backgroundColor: pressed ? c.soft : 'transparent' })}>
-      <I d={icon} size={17} color={danger ? c.neg : c.muted} />
-      <Txt style={{ flex: 1, fontWeight: '600', color: tone }}>{label}</Txt>
+    <Pressable onPress={onPress} accessibilityRole="menuitem" style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 9, paddingHorizontal: 10, borderRadius: 9, backgroundColor: pressed ? c.soft : 'transparent' })}>
+      <I d={icon} size={16} color={c.muted} />
+      <Txt style={{ flex: 1, color: tone }}>{label}</Txt>
     </Pressable>
   );
 }
@@ -51,9 +51,9 @@ export function MenuItem({ icon, label, onPress, danger }: { icon: IconName; lab
 export function MenuHead({ title, subtitle }: { title: string; subtitle?: string }) {
   const { c } = useTheme();
   return (
-    <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.line }}>
-      <Txt style={{ fontWeight: '800', fontSize: 15 }}>{title}</Txt>
-      {subtitle ? <Txt style={{ color: c.muted, fontSize: 12.5 }}>{subtitle}</Txt> : null}
+    <View style={{ paddingTop: 8, paddingHorizontal: 10, paddingBottom: 4 }}>
+      <Txt style={{ fontWeight: '700' }}>{title}</Txt>
+      {subtitle ? <Txt style={{ color: c.muted, fontSize: 12 }}>{subtitle}</Txt> : null}
     </View>
   );
 }

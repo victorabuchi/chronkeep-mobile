@@ -54,7 +54,7 @@ export default function TopBar() {
       <NotifBanner />
       <NoteSheet open={note} onClose={() => setNote(false)} />
       <NotifSheet open={bell} onClose={() => setBell(false)} />
-      <Popover open={menu} onClose={() => setMenu(false)} width={280}>
+      <Popover open={menu} onClose={() => setMenu(false)}>
         <MenuHead title={profile.name || 'Your account'} subtitle={profile.email || 'Personal planner'} />
         <MenuItem icon="gear" label="Settings" onPress={() => go('/settings')} />
         <MenuItem icon="sliders" label="Customize" onPress={() => go('/customize')} />

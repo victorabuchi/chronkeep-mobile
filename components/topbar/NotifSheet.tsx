@@ -20,8 +20,8 @@ export default function NotifSheet({ open, onClose }: { open: boolean; onClose: 
   const KINDS: Record<string, [string, string]> = { action: ['Action', c.pos], reminder: ['Reminder', c.b], repeat: ['Repeating', '#8b5cf6'], overdue: ['Overdue', c.neg], summary: ['Summary', c.warn], test: ['Test', c.muted] };
   const list: Planned[] = tab === 'upcoming' ? upcomingList(open ? plan({ items: data.items, settings: data.settings, snoozed: data.snoozed, now }) : [], now) : data.log.filter((e) => e.at <= now).slice().reverse().slice(0, 30);
   return (
-    <Popover open={open} onClose={onClose} width={360}>
-      <View style={{ gap: 10, padding: 12 }}>
+    <Popover open={open} onClose={onClose} width={380}>
+      <View style={{ gap: 10, padding: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <Txt style={{ fontWeight: '800', fontSize: 15 }}>Notifications</Txt>
           <LinkBtn onPress={() => { onClose(); router.navigate('/tasks'); }}>Open tasks</LinkBtn>
