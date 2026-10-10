@@ -16,7 +16,7 @@ function Pill({ children, tone }: { children: React.ReactNode; tone?: 'late' | '
 }
 
 // One task: its tick, title, a line of facts (kind, course, due, countdown, priority, steps, files, repeat) and its steps.
-export default function TaskRow({ it, ds, settings, now, onOpen, onTick, onStep }: { it: Item; ds: string | null; settings: Settings; now: number; onOpen: () => void; onTick: () => void; onStep: (stepId: string) => void }) {
+export default function TaskRow({ it, ds, settings, now, onOpen, onTick, onStep, group }: { it: Item; ds: string | null; settings: Settings; now: number; onOpen: () => void; onTick: () => void; onStep: (stepId: string) => void; group?: Item[] }) {
   const { c } = useTheme();
   const done = ds ? isDone(it, ds) : it.done, col = colorOf(settings, it.category, c.b);
   const late = !!ds && !done && dueAt(it, ds, settings) < now;
@@ -28,11 +28,14 @@ export default function TaskRow({ it, ds, settings, now, onOpen, onTick, onStep 
     <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={it.title} style={({ pressed }) => ({ flexDirection: 'row', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderTopWidth: 1, borderTopColor: c.line, backgroundColor: pressed ? c.soft : 'transparent', opacity: done ? 0.55 : 1 })}>
       <View style={{ paddingTop: 1 }}><Tick done={done} onPress={onTick} /></View>
       <View style={{ flex: 1, gap: 3 }}>
-        <Txt style={{ fontWeight: '600', textDecorationLine: done ? 'line-through' : 'none' }}>{it.title}</Txt>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Txt style={{ flexShrink: 1, fontWeight: '600', textDecorationLine: done ? 'line-through' : 'none' }}>{it.title}</Txt>
+          {group && group.length > 1 ? <View accessibilityLabel={`${group.length} on this day`} style={{ minWidth: 20, height: 18, paddingHorizontal: 6, borderRadius: 9, alignItems: 'center', justifyContent: 'center', backgroundColor: c.b }}><Txt style={{ color: c.onB, fontSize: 11, lineHeight: 14, fontWeight: '800' }}>{group.length}</Txt></View> : null}
+        </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 3 }}>
           <Txt style={{ ...meta, fontSize: 11, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' }}>{typeLabel(it.type)}</Txt>
           {it.category ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /><Txt style={meta}>{it.category}</Txt></View> : null}
-          {ds ? <Txt style={meta}>{DOW[day(ds).getDay()]} {day(ds).getDate()} {MON[day(ds).getMonth()]!.slice(0, 3)}{it.time ? `, ${it.time}` : ''}</Txt> : null}
+          {ds ? <Txt style={meta}>{DOW[day(ds).getDay()]} {day(ds).getDate()} {MON[day(ds).getMonth()]!.slice(0, 3)}{(() => { const t = group && group.length > 1 ? [...new Set(group.map((x) => x.time).filter(Boolean))].sort().join(', ') : it.time; return t ? `, ${t}` : ''; })()}</Txt> : null}
           {ds && !done ? (() => { const [t, k] = rel(dueAt(it, ds, settings), now); return <Pill tone={k}>{t}</Pill>; })() : null}
           {rule ? <Pill tone="nudge">every {everyLabel(rule.every)}</Pill> : null}
           {prio ? <Txt style={{ ...meta, fontWeight: '700', color: prio[1] === 'neg' ? c.neg : prio[1] === 'warn' ? c.warn : prio[1] }}>{prio[0]}</Txt> : null}

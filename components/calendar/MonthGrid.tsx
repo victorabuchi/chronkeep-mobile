@@ -7,10 +7,10 @@ import { useTheme } from '../../lib/theme-context';
 import type { Item, Settings } from '../../lib/types';
 import type { TypeFilter } from '../../lib/ui-state';
 import { Txt } from '../ui';
-import ItemChip, { occOf } from './ItemChip';
+import DueStrip from './DueStrip';
 
 // The month: weeks of days, each with up to three chips and "+N more". Tapping a day opens it in the day view.
-export default function MonthGrid({ cur, items, settings, typeF, now, onOpen, onDay, onTick }: { cur: string; items: Item[]; settings: Settings; typeF: TypeFilter; now: number; onOpen: (it: Item, occ: string) => void; onDay: (ds: string) => void; onTick: (it: Item, ds: string) => void }) {
+export default function MonthGrid({ cur, items, settings, typeF, now, onOpen, onDay, onTick, onDue }: { cur: string; items: Item[]; settings: Settings; typeF: TypeFilter; now: number; onOpen: (it: Item, occ: string) => void; onDay: (ds: string) => void; onTick: (it: Item, ds: string) => void; onDue: (ds: string) => void }) {
   const { c } = useTheme();
   const weeks = monthWeeks(cur, settings), month = new Date(`${cur}T00:00:00`).getMonth(), todayS = ymd(new Date(now));
   return (
@@ -28,8 +28,7 @@ export default function MonthGrid({ cur, items, settings, typeF, now, onOpen, on
                 <View style={{ alignSelf: 'flex-end', minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: today ? c.b : 'transparent' }}>
                   <Txt style={{ fontSize: 12, lineHeight: 15, fontWeight: '700', color: today ? c.onB : c.ink, opacity: other && !today ? 0.4 : 1 }}>{new Date(`${ds}T00:00:00`).getDate()}</Txt>
                 </View>
-                {list.slice(0, 3).map((it) => <ItemChip key={it.id} it={it} ds={ds} settings={settings} now={now} month onOpen={() => onOpen(it, occOf(it, ds))} onTick={() => onTick(it, ds)} />)}
-                {list.length > 3 ? <Txt style={{ paddingLeft: 4, fontSize: 11, lineHeight: 14, fontWeight: '600', color: c.muted }}>+{list.length - 3} more</Txt> : null}
+                <DueStrip list={list} ds={ds} settings={settings} now={now} month onOpen={onOpen} onTick={onTick} onMore={onDue} />
               </Pressable>
             );
           })}

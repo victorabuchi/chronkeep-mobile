@@ -1,22 +1,23 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
-import { HH, hhmm, lanes, snap15 } from '../../lib/calendar-layout';
+import { HH, hhmm, snap15 } from '../../lib/calendar-layout';
+import { splitDay } from '../../lib/due';
 import { DOW, pad } from '../../lib/dates';
-import { segment, ymd } from '../../lib/recur';
-import { colorOf, matchesFilter, showsOn } from '../../lib/selectors';
+import { ymd } from '../../lib/recur';
+import { colorOf } from '../../lib/selectors';
 import { mix } from '../../lib/theme';
 import { useTheme } from '../../lib/theme-context';
 import type { Item, Settings } from '../../lib/types';
 import type { TypeFilter } from '../../lib/ui-state';
 import { Txt } from '../ui';
 import EventBlock from './EventBlock';
-import ItemChip, { occOf } from './ItemChip';
+import DueStrip from './DueStrip';
 
 const GUTTER = 40;
 
 // The day or three-day view: day heads, a row of deadlines and all-day items, then the hours with timed events.
 // Tapping an empty spot starts a new event at that time.
-export default function TimeGrid({ days, items, settings, typeF, now, width, height, onOpen, onCreate, onTick }: { days: string[]; items: Item[]; settings: Settings; typeF: TypeFilter; now: number; width: number; height: number; onOpen: (it: Item, occ: string) => void; onCreate: (ds: string, minutes: number) => void; onTick: (it: Item, ds: string) => void }) {
+export default function TimeGrid({ days, items, settings, typeF, now, width, height, onOpen, onCreate, onTick, onDue }: { days: string[]; items: Item[]; settings: Settings; typeF: TypeFilter; now: number; width: number; height: number; onOpen: (it: Item, occ: string) => void; onCreate: (ds: string, minutes: number) => void; onTick: (it: Item, ds: string) => void; onDue: (ds: string) => void }) {
   const { c } = useTheme();
   const scroller = useRef<ScrollView>(null);
   const top0 = settings.dayStart * 60, lim = settings.dayEnd * 60, rows = settings.dayEnd - settings.dayStart;
@@ -25,18 +26,7 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
   const todayS = ymd(new Date(now)), colW = wide ? Math.max(104, (width - GUTTER) / 3.4) : (width - GUTTER) / days.length;
   const headScroll = useRef<ScrollView>(null), bodyScroll = useRef<ScrollView>(null);
 
-  const perDay = useMemo(() => days.map((ds) => {
-    const timed: Array<{ it: Item; sg: NonNullable<ReturnType<typeof segment>>; s: number; e: number }> = [], due: Item[] = [];
-    for (const it of items) {
-      if (!matchesFilter(it, typeF) || !showsOn(it, ds)) continue;
-      if (it.type === 'event' && it.time) {
-        const sg = segment(it, ds, top0, lim)!, e = sg.first && sg.last ? Math.max(sg.start + 15, sg.end) : sg.end;
-        if (e <= top0 || sg.start >= lim) due.push(it); else timed.push({ it, sg, s: Math.max(sg.start, top0), e: Math.min(e, lim) });
-      } else due.push(it);
-    }
-    due.sort((a, b) => (a.time || '99').localeCompare(b.time || '99'));
-    return { ds, due, timed: lanes(timed) };
-  }), [days, items, typeF, top0, lim]);
+  const perDay = useMemo(() => days.map((ds) => ({ ds, ...splitDay(items, ds, settings, typeF) })), [days, items, typeF, settings]);
 
   // Always open at the start of the day (7:00 by default), so the view looks the same every time it opens.
   useEffect(() => {
@@ -49,6 +39,8 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days.join(','), height]);
 
+  // The Events filter shows only lessons, so it has no DUE row (unless an event falls outside the hours shown).
+  const showDue = !(typeF === 'event' && !perDay.some((p) => p.due.length));
   const line = { borderLeftWidth: 1, borderLeftColor: c.line };
   const nowMin = new Date(now).getHours() * 60 + new Date(now).getMinutes();
 
@@ -65,7 +57,7 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
   };
   const dueCell = ({ ds, due }: (typeof perDay)[number]) => (
     <View key={ds} style={[line, { width: colW, minHeight: 34, gap: 3, padding: 4 }]}>
-      {due.map((it) => <ItemChip key={`${it.id}|${ds}`} it={it} ds={ds} settings={settings} now={now} onOpen={() => onOpen(it, occOf(it, ds))} onTick={() => onTick(it, ds)} />)}
+      <DueStrip list={due} ds={ds} settings={settings} now={now} onOpen={onOpen} onTick={onTick} onMore={onDue} />
     </View>
   );
   const dueLabel = <Txt style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', letterSpacing: 0.84, color: c.muted }}>DUE</Txt>;
@@ -95,12 +87,12 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
             <ScrollView ref={headScroll} horizontal scrollEnabled={false} showsHorizontalScrollIndicator={false}>
               <View style={{ width: contentW, paddingLeft: GUTTER }}>
                 <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.line }}>{perDay.map(({ ds }) => head(ds))}</View>
-                <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: c.line, backgroundColor: mix(c.soft, c.card, 0.6) }}>{perDay.map(dueCell)}</View>
+                {showDue ? <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: c.line, backgroundColor: mix(c.soft, c.card, 0.6) }}>{perDay.map(dueCell)}</View> : null}
               </View>
             </ScrollView>
             <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: GUTTER, backgroundColor: c.card }}>
               <View style={{ height: 45 }} />
-              <View style={{ flex: 1, alignItems: 'center', paddingTop: 9, backgroundColor: mix(c.soft, c.card, 0.6) }}>{dueLabel}</View>
+              {showDue ? <View style={{ flex: 1, alignItems: 'center', paddingTop: 9, backgroundColor: mix(c.soft, c.card, 0.6) }}>{dueLabel}</View> : null}
             </View>
           </View>
           {/* the hours: the labels stay at the left while the days slide */}
@@ -121,10 +113,12 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
         <View style={{ width: GUTTER }} />
         {perDay.map(({ ds }) => head(ds))}
       </View>
-      <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: c.line, backgroundColor: mix(c.soft, c.card, 0.6) }}>
-        <View style={{ width: GUTTER, alignItems: 'center', paddingTop: 9 }}>{dueLabel}</View>
-        {perDay.map(dueCell)}
-      </View>
+      {showDue ? (
+        <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: c.line, backgroundColor: mix(c.soft, c.card, 0.6) }}>
+          <View style={{ width: GUTTER, alignItems: 'center', paddingTop: 9 }}>{dueLabel}</View>
+          {perDay.map(dueCell)}
+        </View>
+      ) : null}
       <ScrollView ref={scroller} nestedScrollEnabled showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', height: rows * HH }}>
           <View style={{ width: GUTTER }}>{hourLabels}</View>
