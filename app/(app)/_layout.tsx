@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppTabBar, { tabsHeight } from '../../components/AppTabBar';
 import TopBar from '../../components/TopBar';
+import BurstLayer from '../../components/BurstLayer';
 import { ToastProvider } from '../../components/ui';
 
 // Every page shares the app frame: the top bar and the tab bar.
@@ -17,6 +18,7 @@ export default function AppLayout() {
         <Tabs.Screen name="customize" options={{ title: 'Customize' }} />
         <Tabs.Screen name="settings" options={{ title: 'Settings' }} />
       </Tabs>
+      <BurstLayer />
     </ToastProvider>
   );
 }
