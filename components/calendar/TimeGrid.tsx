@@ -11,6 +11,7 @@ import type { Item, Settings } from '../../lib/types';
 import type { TypeFilter } from '../../lib/ui-state';
 import { Txt } from '../ui';
 import EventBlock from './EventBlock';
+import AssignmentBlock from './AssignmentBlock';
 import DueStrip from './DueStrip';
 
 const GUTTER = 40;
@@ -40,7 +41,7 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
   }, [days.join(','), height]);
 
   // The Events filter shows only lessons, so it has no DUE row (unless an event falls outside the hours shown).
-  const showDue = !(typeF === 'event' && !perDay.some((p) => p.due.length));
+  const showDue = !((typeF === 'event' || typeF === 'assignment') && !perDay.some((p) => p.due.length));
   const line = { borderLeftWidth: 1, borderLeftColor: c.line };
   const nowMin = new Date(now).getHours() * 60 + new Date(now).getMinutes();
 
@@ -69,6 +70,7 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
         {Array.from({ length: rows }, (_, i) => <View key={i} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: (i + 1) * HH - 1, height: 1, backgroundColor: c.line }} />)}
         {timed.map((ev) => {
           const w = (colW - 3) / ev.n, sg = ev.sg;
+          if (ev.asg) return <AssignmentBlock key={`${ev.it.id}|${ds}`} group={ev.group ?? [ev.it]} ds={ds} settings={settings} now={now} top={((ev.s - top0) / 60) * HH} height={Math.max(40, ((ev.e - ev.s) / 60) * HH - 2)} left={ev.lane * w + 1} width={w - 1} onOpen={(it) => onOpen(it, ds)} onTick={(it) => onTick(it, ds)} onMore={() => onDue(ds)} />;
           const label = sg.first && sg.last ? `${ev.it.time}${ev.it.endTime ? ' to ' + ev.it.endTime : ''}` : sg.first ? `${ev.it.time} and on` : sg.last ? `until ${ev.it.endTime || 'the evening'}` : 'All day';
           return <EventBlock key={`${ev.it.id}|${ds}`} it={ev.it} label={label} color={colorOf(settings, ev.it.category, c.b)} top={((ev.s - top0) / 60) * HH} height={Math.max(26, ((ev.e - ev.s) / 60) * HH - 2)} left={ev.lane * w + 1} width={w - 1} first={sg.first} last={sg.last} onOpen={() => onOpen(ev.it, sg.occ)} />;
         })}

@@ -17,10 +17,19 @@ test('a day shows three groups, or two and "+N more" for the rest', () => {
   expect(s4.shown).toHaveLength(2); expect(s4.rest).toBe(3);
 });
 
-test('a day splits into hours and strip: timed events go in the hours, deadlines in the strip', () => {
-  const items = [newItem({ id: 'l', type: 'event', title: 'Lecture', date: '2026-10-13', time: '10:00', endTime: '12:00' }), task('t', 'Essay'), newItem({ id: 'night', type: 'event', title: 'Late', date: '2026-10-13', time: '23:00', endTime: '23:30' })];
+test('assignments are blocks in the hours ending at their due time; same title and minute merge; a late time sits at the edge', () => {
+  const items = [task('a', 'Attendance', { time: '10:00' }), task('b', 'Attendance', { time: '10:00' }), task('c', 'Essay', { time: '23:59' })];
   const r = splitDay(items, '2026-10-13', s, 'all');
-  expect(r.timed.map((x) => x.it.id)).toEqual(['l']);
+  expect(r.due).toEqual([]);
+  const blocks = r.timed.filter((b) => b.asg);
+  expect(blocks.map((b) => [b.it.title, b.group!.length, b.s, b.e])).toEqual([['Attendance', 2, 540, 600], ['Essay', 1, 1260, 1320]]); // 23:59 is past the 22:00 end of the day
+  expect(r.deadlines.map((i) => i.id)).toEqual(['a', 'b', 'c']);
+});
+
+test('a day splits into hours and strip: timed events go in the hours, deadlines in the strip', () => {
+  const items = [newItem({ id: 'l', type: 'event', title: 'Lecture', date: '2026-10-13', time: '10:00', endTime: '12:00' }), newItem({ id: 't', type: 'todo', title: 'Buy milk', date: '2026-10-13', time: '10:00' }), newItem({ id: 'night', type: 'event', title: 'Late', date: '2026-10-13', time: '23:00', endTime: '23:30' })];
+  const r = splitDay(items, '2026-10-13', s, 'all');
+  expect(r.timed.map((x) => x.it.id)).toEqual(['l']); // (a to-do is not a block in the hours)
   expect(r.due.map((x) => x.id)).toEqual(['t', 'night']); // after the last hour shown: strip
   expect(splitDay(items, '2026-10-13', s, 'event').due.map((x) => x.id)).toEqual(['night']);
 });

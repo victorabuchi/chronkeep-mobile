@@ -21,7 +21,7 @@ export default function Calendar() {
   const cur = useUI((u) => u.cur), view = useUI((u) => u.view), typeF = useUI((u) => u.typeF);
   const now = useNow(), act = useItemActions(), router = useRouter();
   // Back from the full-screen assignments page: show everything again.
-  useFocusEffect(useCallback(() => { if (getUI().typeF === 'assignment' || getUI().typeF === 'todo') setUI({ typeF: 'all' }); }, []));
+  useFocusEffect(useCallback(() => { if (getUI().typeF === 'todo') setUI({ typeF: 'all' }); }, []));
   // chronkeep://calendar?view=week opens the calendar in that view (day, 3days, week or month)
   // (and ?date=2026-10-13 goes to that day)
   const { view: want, date: wantDate } = useLocalSearchParams<{ view?: string; date?: string }>();
@@ -43,7 +43,7 @@ export default function Calendar() {
         <Segment options={VIEWS} value={view} onChange={(v) => setUI({ view: v })} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-        {TYPES.map((t) => <Chip key={t.id} on={typeF === t.id} onPress={() => { setUI({ typeF: t.id }); if (t.id === 'assignment' || t.id === 'todo') router.navigate('/tasks'); /* assignments and to-dos get the whole screen */ }}>{t.label}</Chip>)}
+        {TYPES.map((t) => <Chip key={t.id} on={typeF === t.id} onPress={() => { setUI({ typeF: t.id }); if (t.id === 'todo') router.navigate('/tasks'); /* to-dos get the whole screen, as big cards */ }}>{t.label}</Chip>)}
       </ScrollView>
     </View>
   );

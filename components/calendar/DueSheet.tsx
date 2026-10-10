@@ -13,7 +13,7 @@ import { occOf } from './ItemChip';
 // Everything due on one day, opened from a merged pill or "+N more". Tick things off here, or tap one to open it.
 export default function DueSheet({ ds, items, settings, typeF, now, onClose, onOpen, onTick }: { ds: string | null; items: Item[]; settings: Settings; typeF: TypeFilter; now: number; onClose: () => void; onOpen: (it: Item, occ: string) => void; onTick: (it: Item, ds: string) => void }) {
   const { c } = useTheme();
-  const list = ds ? splitDay(items, ds, settings, typeF).due : [];
+  const list = ds ? splitDay(items, ds, settings, typeF).deadlines : [];
   const d = ds ? day(ds) : null;
   return (
     <Sheet open={!!ds && list.length > 0} onClose={onClose} title={d ? `Due ${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]!.slice(0, 3)} · ${list.length}` : ''}>
