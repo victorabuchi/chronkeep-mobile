@@ -15,7 +15,8 @@ import NotifBanner from './NotifBanner';
 import NoteSheet from './topbar/NoteSheet';
 import NotifSheet from './topbar/NotifSheet';
 import SearchBar from './topbar/SearchBar';
-import { Btn, IBtn, Sheet, Txt, useToast } from './ui';
+import Popover, { MenuHead, MenuItem } from './Popover';
+import { IBtn, Txt, useToast } from './ui';
 
 // The top bar of every page (.top): logo (home), search, note, bell, New and the avatar.
 export default function TopBar() {
@@ -53,18 +54,16 @@ export default function TopBar() {
       <NotifBanner />
       <NoteSheet open={note} onClose={() => setNote(false)} />
       <NotifSheet open={bell} onClose={() => setBell(false)} />
-      <Sheet open={menu} onClose={() => setMenu(false)} title={profile.name || 'Your account'}>
-        <View style={{ gap: 6 }}>
-          <Txt style={{ color: c.muted, marginBottom: 6 }}>{profile.email || 'Personal planner'}</Txt>
-          <Btn variant="ghost" onPress={() => go('/settings')}>Settings</Btn>
-          <Btn variant="ghost" onPress={() => go('/customize')}>Customize</Btn>
-          <Btn variant="ghost" onPress={() => {
-            setMenu(false);
-            Alert.alert('Sign out?', 'Your data stays in your account. It is removed from this phone, and comes back when you sign in again.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Sign out', style: 'destructive', onPress: () => void signOutAndWipe() }]);
-          }}>Sign out</Btn>
-          <Btn variant="ghost" onPress={() => { setMenu(false); void sendTest().then(() => toast.show('Test notification sent')); }}>Send test notification</Btn>
-        </View>
-      </Sheet>
+      <Popover open={menu} onClose={() => setMenu(false)} width={280}>
+        <MenuHead title={profile.name || 'Your account'} subtitle={profile.email || 'Personal planner'} />
+        <MenuItem icon="gear" label="Settings" onPress={() => go('/settings')} />
+        <MenuItem icon="sliders" label="Customize" onPress={() => go('/customize')} />
+        <MenuItem icon="bell" label="Send test notification" onPress={() => { setMenu(false); void sendTest().then(() => toast.show('Test notification sent')); }} />
+        <MenuItem icon="out" label="Log out" danger onPress={() => {
+          setMenu(false);
+          Alert.alert('Log out?', 'Your data stays in your account. It is removed from this phone, and comes back when you log in again.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Log out', style: 'destructive', onPress: () => void signOutAndWipe() }]);
+        }} />
+      </Popover>
     </View>
   );
 }

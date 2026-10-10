@@ -10,6 +10,8 @@ export const HH = 56; // pixels per hour, as on the web
 // Which days a view shows. On a phone the week is three days from the one you are on.
 export function daysFor(view: View, cur: string, s: Settings): string[] {
   if (view === 'day') return [cur];
+  // the whole week, from the week-start day that the current day falls in
+  if (view === 'week') { const start = addDays(day(cur), -((day(cur).getDay() - s.weekStart + 7) % 7)); return Array.from({ length: 7 }, (_, i) => ymd(addDays(start, i))); }
   if (view === '3days') return [0, 1, 2].map((i) => ymd(addDays(day(cur), i)));
   return [];
 }
@@ -33,13 +35,18 @@ export function title(view: View, days: string[], cur: string): string {
   return a.getMonth() === b.getMonth() ? `${MON[a.getMonth()]} ${a.getDate()} to ${b.getDate()}, ${b.getFullYear()}` : `${MON[a.getMonth()]!.slice(0, 3)} ${a.getDate()} to ${MON[b.getMonth()]!.slice(0, 3)} ${b.getDate()}, ${b.getFullYear()}`;
 }
 
-export const eyebrow = (view: View) => (view === '3days' ? '3 days' : view === 'day' ? 'Day' : 'Month');
+// ISO week number, as the web shows it ("Week 42").
+export function weekNo(ds: string): number {
+  const d = day(ds), t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate() + 3)), y = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return Math.ceil(((t.getTime() - y.getTime()) / 86400000 + 1 - ((t.getUTCDay() + 6) % 7) + 3) / 7);
+}
+export const eyebrow = (view: View, days: string[] = []) => (view === 'week' && days[0] ? `Week ${weekNo(days[0])}` : view === '3days' ? '3 days' : view === 'day' ? 'Day' : view === 'week' ? 'Week' : 'Month');
 
 // Moving to the previous or next stretch: a month, three days or a day.
 export function step(view: View, cur: string, n: number): string {
   const c = day(cur);
   if (view === 'month') return ymd(new Date(c.getFullYear(), c.getMonth() + n, 1));
-  return ymd(addDays(c, n * (view === '3days' ? 3 : 1)));
+  return ymd(addDays(c, n * (view === 'week' ? 7 : view === '3days' ? 3 : 1)));
 }
 
 export type Laid<T> = T & { s: number; e: number; lane: number; n: number };

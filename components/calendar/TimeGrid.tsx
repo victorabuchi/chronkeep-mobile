@@ -20,7 +20,10 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
   const { c } = useTheme();
   const scroller = useRef<ScrollView>(null);
   const top0 = settings.dayStart * 60, lim = settings.dayEnd * 60, rows = settings.dayEnd - settings.dayStart;
-  const todayS = ymd(new Date(now)), colW = (width - GUTTER) / days.length;
+  // Up to three days share the width. A week is wider than the screen: its columns keep a readable width and scroll sideways.
+  const wide = days.length > 3;
+  const todayS = ymd(new Date(now)), colW = wide ? Math.max(104, (width - GUTTER) / 3.4) : (width - GUTTER) / days.length;
+  const headScroll = useRef<ScrollView>(null), bodyScroll = useRef<ScrollView>(null);
 
   const perDay = useMemo(() => days.map((ds) => {
     const timed: Array<{ it: Item; sg: NonNullable<ReturnType<typeof segment>>; s: number; e: number }> = [], due: Item[] = [];
@@ -39,58 +42,94 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
   useEffect(() => {
     const m = new Date(now).getHours() * 60 + new Date(now).getMinutes();
     const y = days.includes(todayS) ? Math.max(0, ((m - top0) / 60) * HH - height * 0.4) : 0;
-    const t = setTimeout(() => scroller.current?.scrollTo({ y, animated: false }), 0);
+    const t = setTimeout(() => {
+      scroller.current?.scrollTo({ y, animated: false });
+      if (wide) { const i = days.indexOf(todayS), x = i > 0 ? Math.min(i * colW, days.length * colW - (width - GUTTER)) : 0; bodyScroll.current?.scrollTo({ x, animated: false }); headScroll.current?.scrollTo({ x, animated: false }); }
+    }, 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days.join(','), height]);
 
   const line = { borderLeftWidth: 1, borderLeftColor: c.line };
+  const nowMin = new Date(now).getHours() * 60 + new Date(now).getMinutes();
+
+  const head = (ds: string) => {
+    const d = new Date(`${ds}T00:00:00`), today = ds === todayS;
+    return (
+      <View key={ds} style={[line, { width: colW, height: 44, flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 6 }]}>
+        <Txt style={{ fontSize: 11, lineHeight: 14, fontWeight: '700', letterSpacing: 0.77, textTransform: 'uppercase', color: today ? c.b : c.muted }}>{DOW[d.getDay()]}</Txt>
+        <View style={{ minWidth: 26, height: 26, paddingHorizontal: 6, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: today ? c.b : 'transparent' }}>
+          <Txt style={{ fontSize: 15, lineHeight: 18, fontWeight: '700', color: today ? c.onB : c.ink }}>{d.getDate()}</Txt>
+        </View>
+      </View>
+    );
+  };
+  const dueCell = ({ ds, due }: (typeof perDay)[number]) => (
+    <View key={ds} style={[line, { width: colW, minHeight: 34, gap: 3, padding: 4 }]}>
+      {due.map((it) => <ItemChip key={`${it.id}|${ds}`} it={it} ds={ds} settings={settings} now={now} onOpen={() => onOpen(it, occOf(it, ds))} onTick={() => onTick(it, ds)} />)}
+    </View>
+  );
+  const dueLabel = <Txt style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', letterSpacing: 0.84, color: c.muted }}>DUE</Txt>;
+  const hourLabels = Array.from({ length: rows }, (_, i) => <Txt key={i} style={{ position: 'absolute', right: 4, top: i * HH + (i ? -7 : 2), fontSize: 10, lineHeight: 14, fontWeight: '600', color: c.muted, backgroundColor: c.card, paddingHorizontal: 2 }}>{settings.dayStart + i}:00</Txt>);
+  const column = ({ ds, timed }: (typeof perDay)[number]) => {
+    const today = ds === todayS;
+    return (
+      <Pressable key={ds} onPress={(e) => onCreate(ds, Math.max(top0, Math.min(lim - 30, Math.floor(snap15(top0 + (e.nativeEvent.locationY / HH) * 60) / 30) * 30)))} accessibilityLabel={`New event on ${ds}`} style={[line, { width: colW, height: rows * HH, backgroundColor: today ? mix(c.b, c.card, 0.04) : c.card }]}>
+        {Array.from({ length: rows }, (_, i) => <View key={i} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: (i + 1) * HH - 1, height: 1, backgroundColor: c.line }} />)}
+        {timed.map((ev) => {
+          const w = (colW - 3) / ev.n, sg = ev.sg;
+          const label = sg.first && sg.last ? `${ev.it.time}${ev.it.endTime ? ' to ' + ev.it.endTime : ''}` : sg.first ? `${ev.it.time} and on` : sg.last ? `until ${ev.it.endTime || 'the evening'}` : 'All day';
+          return <EventBlock key={`${ev.it.id}|${ds}`} it={ev.it} label={label} color={colorOf(settings, ev.it.category, c.b)} top={((ev.s - top0) / 60) * HH} height={Math.max(26, ((ev.e - ev.s) / 60) * HH - 2)} left={ev.lane * w + 1} width={w - 1} first={sg.first} last={sg.last} onOpen={() => onOpen(ev.it, sg.occ)} />;
+        })}
+        {today && nowMin >= top0 && nowMin <= lim ? <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: ((nowMin - top0) / 60) * HH, height: 0, borderTopWidth: 2, borderTopColor: '#e5484d' }}><View style={{ position: 'absolute', left: -1, top: -5, width: 8, height: 8, borderRadius: 4, backgroundColor: '#e5484d' }} /></View> : null}
+      </Pressable>
+    );
+  };
+
+  if (wide) {
+    const contentW = GUTTER + days.length * colW;
+    return (
+      <View style={{ height, backgroundColor: c.card }}>
+        <ScrollView ref={scroller} style={{ flex: 1 }} nestedScrollEnabled showsVerticalScrollIndicator={false} stickyHeaderIndices={[0]}>
+          {/* day heads and deadlines: they slide sideways with the hours; the DUE label stays put */}
+          <View style={{ backgroundColor: c.card, zIndex: 3 }}>
+            <ScrollView ref={headScroll} horizontal scrollEnabled={false} showsHorizontalScrollIndicator={false}>
+              <View style={{ width: contentW, paddingLeft: GUTTER }}>
+                <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.line }}>{perDay.map(({ ds }) => head(ds))}</View>
+                <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: c.line, backgroundColor: mix(c.soft, c.card, 0.6) }}>{perDay.map(dueCell)}</View>
+              </View>
+            </ScrollView>
+            <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: GUTTER, backgroundColor: c.card }}>
+              <View style={{ height: 45 }} />
+              <View style={{ flex: 1, alignItems: 'center', paddingTop: 9, backgroundColor: mix(c.soft, c.card, 0.6) }}>{dueLabel}</View>
+            </View>
+          </View>
+          {/* the hours: the labels stay at the left while the days slide */}
+          <View style={{ height: rows * HH }}>
+            <ScrollView ref={bodyScroll} horizontal nestedScrollEnabled showsHorizontalScrollIndicator={false} snapToInterval={colW} decelerationRate="fast" scrollEventThrottle={16} onScroll={(e) => headScroll.current?.scrollTo({ x: e.nativeEvent.contentOffset.x, animated: false })}>
+              <View style={{ flexDirection: 'row', width: contentW, paddingLeft: GUTTER }}>{perDay.map(column)}</View>
+            </ScrollView>
+            <View pointerEvents="none" style={{ position: 'absolute', left: 0, top: 0, width: GUTTER, height: rows * HH, backgroundColor: c.card }}>{hourLabels}</View>
+          </View>
+        </ScrollView>
+      </View>
+    );
+  }
+
   return (
     <View style={{ height, backgroundColor: c.card }}>
-      {/* day heads */}
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: c.line }}>
         <View style={{ width: GUTTER }} />
-        {perDay.map(({ ds }) => {
-          const d = new Date(`${ds}T00:00:00`), today = ds === todayS;
-          return (
-            <View key={ds} style={[line, { width: colW, flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 8, paddingHorizontal: 6 }]}>
-              <Txt style={{ fontSize: 11, lineHeight: 14, fontWeight: '700', letterSpacing: 0.77, textTransform: 'uppercase', color: today ? c.b : c.muted }}>{DOW[d.getDay()]}</Txt>
-              <View style={{ minWidth: 26, height: 26, paddingHorizontal: 6, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: today ? c.b : 'transparent' }}>
-                <Txt style={{ fontSize: 15, lineHeight: 18, fontWeight: '700', color: today ? c.onB : c.ink }}>{d.getDate()}</Txt>
-              </View>
-            </View>
-          );
-        })}
+        {perDay.map(({ ds }) => head(ds))}
       </View>
-      {/* deadlines and all-day items */}
       <View style={{ flexDirection: 'row', borderBottomWidth: 2, borderBottomColor: c.line, backgroundColor: mix(c.soft, c.card, 0.6) }}>
-        <View style={{ width: GUTTER, alignItems: 'center', paddingTop: 9 }}><Txt style={{ fontSize: 10.5, lineHeight: 13, fontWeight: '800', letterSpacing: 0.84, color: c.muted }}>DUE</Txt></View>
-        {perDay.map(({ ds, due }) => (
-          <View key={ds} style={[line, { width: colW, minHeight: 34, gap: 3, padding: 4 }]}>
-            {due.map((it) => <ItemChip key={`${it.id}|${ds}`} it={it} ds={ds} settings={settings} now={now} onOpen={() => onOpen(it, occOf(it, ds))} onTick={() => onTick(it, ds)} />)}
-          </View>
-        ))}
+        <View style={{ width: GUTTER, alignItems: 'center', paddingTop: 9 }}>{dueLabel}</View>
+        {perDay.map(dueCell)}
       </View>
-      {/* the hours */}
       <ScrollView ref={scroller} nestedScrollEnabled showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: 'row', height: rows * HH }}>
-          <View style={{ width: GUTTER }}>
-            {Array.from({ length: rows }, (_, i) => <Txt key={i} style={{ position: 'absolute', right: 4, top: i * HH + (i ? -7 : 2), fontSize: 10, lineHeight: 14, fontWeight: '600', color: c.muted, backgroundColor: c.card, paddingHorizontal: 2 }}>{settings.dayStart + i}:00</Txt>)}
-          </View>
-          {perDay.map(({ ds, timed }) => {
-            const today = ds === todayS, nowMin = new Date(now).getHours() * 60 + new Date(now).getMinutes();
-            return (
-              <Pressable key={ds} onPress={(e) => onCreate(ds, Math.max(top0, Math.min(lim - 30, Math.floor(snap15(top0 + (e.nativeEvent.locationY / HH) * 60) / 30) * 30)))} accessibilityLabel={`New event on ${ds}`} style={[line, { width: colW, height: rows * HH, backgroundColor: today ? mix(c.b, c.card, 0.04) : c.card }]}>
-                {Array.from({ length: rows }, (_, i) => <View key={i} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: (i + 1) * HH - 1, height: 1, backgroundColor: c.line }} />)}
-                {timed.map((ev) => {
-                  const w = (colW - 3) / ev.n, sg = ev.sg;
-                  const label = sg.first && sg.last ? `${ev.it.time}${ev.it.endTime ? ' to ' + ev.it.endTime : ''}` : sg.first ? `${ev.it.time} and on` : sg.last ? `until ${ev.it.endTime || 'the evening'}` : 'All day';
-                  return <EventBlock key={`${ev.it.id}|${ds}`} it={ev.it} label={label} color={colorOf(settings, ev.it.category, c.b)} top={((ev.s - top0) / 60) * HH} height={Math.max(26, ((ev.e - ev.s) / 60) * HH - 2)} left={ev.lane * w + 1} width={w - 1} first={sg.first} last={sg.last} onOpen={() => onOpen(ev.it, sg.occ)} />;
-                })}
-                {today && nowMin >= top0 && nowMin <= lim ? <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: ((nowMin - top0) / 60) * HH, height: 0, borderTopWidth: 2, borderTopColor: '#e5484d' }}><View style={{ position: 'absolute', left: -1, top: -5, width: 8, height: 8, borderRadius: 4, backgroundColor: '#e5484d' }} /></View> : null}
-              </Pressable>
-            );
-          })}
+          <View style={{ width: GUTTER }}>{hourLabels}</View>
+          {perDay.map(column)}
         </View>
       </ScrollView>
     </View>

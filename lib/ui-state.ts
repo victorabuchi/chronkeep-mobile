@@ -3,7 +3,7 @@ import { ymd } from './recur';
 import type { Item } from './types';
 
 // What the screens share while you use the app: the calendar's date and view, the filter, the item sheet.
-export type View = 'month' | '3days' | 'day';
+export type View = 'month' | 'week' | '3days' | 'day';
 export type TypeFilter = 'all' | 'assignment' | 'event' | 'todo';
 export type SheetState = { item: Item | null; preset?: Partial<Item>; occ?: string } | null;
 export type UI = { cur: string; view: View; typeF: TypeFilter; sheet: SheetState; noteOpen: boolean; navDir: number };

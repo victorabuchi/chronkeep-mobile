@@ -7,7 +7,8 @@ import { plan, upcomingList } from '../../lib/schedule';
 import { useTheme } from '../../lib/theme-context';
 import { openItem } from '../../lib/ui-state';
 import type { Planned } from '../../lib/types';
-import { LinkBtn, Segment, Sheet, Txt } from '../ui';
+import Popover from '../Popover';
+import { LinkBtn, Segment, Txt } from '../ui';
 
 // The bell: what is coming (Upcoming) and what was sent (Earlier). Tapping one opens its item.
 export default function NotifSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -19,12 +20,13 @@ export default function NotifSheet({ open, onClose }: { open: boolean; onClose: 
   const KINDS: Record<string, [string, string]> = { action: ['Action', c.pos], reminder: ['Reminder', c.b], repeat: ['Repeating', '#8b5cf6'], overdue: ['Overdue', c.neg], summary: ['Summary', c.warn], test: ['Test', c.muted] };
   const list: Planned[] = tab === 'upcoming' ? upcomingList(open ? plan({ items: data.items, settings: data.settings, snoozed: data.snoozed, now }) : [], now) : data.log.filter((e) => e.at <= now).slice().reverse().slice(0, 30);
   return (
-    <Sheet open={open} onClose={onClose} title="Notifications">
-      <View style={{ gap: 10 }}>
+    <Popover open={open} onClose={onClose} width={360}>
+      <View style={{ gap: 10, padding: 12 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Segment options={[{ id: 'upcoming', label: 'Upcoming' }, { id: 'history', label: 'Earlier' }]} value={tab} onChange={setTab} />
+          <Txt style={{ fontWeight: '800', fontSize: 15 }}>Notifications</Txt>
           <LinkBtn onPress={() => { onClose(); router.navigate('/tasks'); }}>Open tasks</LinkBtn>
         </View>
+        <Segment options={[{ id: 'upcoming', label: 'Upcoming' }, { id: 'history', label: 'Earlier' }]} value={tab} onChange={setTab} wide />
         {list.length ? list.map((n, i) => {
           const [kl, kc] = KINDS[n.kind] ?? KINDS.reminder!, it = n.itemId ? data.items.find((x) => x.id === n.itemId) : undefined;
           return (
@@ -42,6 +44,6 @@ export default function NotifSheet({ open, onClose }: { open: boolean; onClose: 
           );
         }) : <Txt style={{ color: c.muted, textAlign: 'center', padding: 20 }}>{tab === 'upcoming' ? 'Nothing scheduled. Add a deadline with a reminder and it shows up here.' : 'No notifications sent yet.'}</Txt>}
       </View>
-    </Sheet>
+    </Popover>
   );
 }

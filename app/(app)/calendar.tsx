@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import MonthGrid from '../../components/calendar/MonthGrid';
 import TimeGrid from '../../components/calendar/TimeGrid';
@@ -10,7 +11,7 @@ import { ymd } from '../../lib/recur';
 import { useTheme } from '../../lib/theme-context';
 import { openItem, setUI, useUI, type TypeFilter, type View as CalView } from '../../lib/ui-state';
 
-const VIEWS: Array<{ id: CalView; label: string }> = [{ id: 'day', label: 'Day' }, { id: '3days', label: '3 days' }, { id: 'month', label: 'Month' }];
+const VIEWS: Array<{ id: CalView; label: string }> = [{ id: 'day', label: 'Day' }, { id: '3days', label: '3 days' }, { id: 'week', label: '7 days' }];
 const TYPES: Array<{ id: TypeFilter; label: string }> = [{ id: 'all', label: 'All' }, { id: 'assignment', label: 'Assignments' }, { id: 'event', label: 'Events' }, { id: 'todo', label: 'To-dos' }];
 
 export default function Calendar() {
@@ -18,6 +19,9 @@ export default function Calendar() {
   const settings = useData((d) => d.settings), items = useData((d) => d.items);
   const cur = useUI((u) => u.cur), view = useUI((u) => u.view), typeF = useUI((u) => u.typeF);
   const now = useNow(), act = useItemActions();
+  // chronkeep://calendar?view=week opens the calendar in that view (day, 3days, week or month)
+  const { view: want } = useLocalSearchParams<{ view?: string }>();
+  useEffect(() => { if (want === 'day' || want === '3days' || want === 'week' || want === 'month') setUI({ view: want }); }, [want]);
   const [box, setBox] = useState({ w: 0, h: 0 });
   const days = daysFor(view, cur, settings), today = ymd(new Date(now));
   const go = (n: number) => setUI({ cur: step(view, cur, n) });
@@ -25,7 +29,7 @@ export default function Calendar() {
 
   const head = (
     <View style={{ gap: 10, paddingHorizontal: 12, paddingTop: 16, paddingBottom: 10 }}>
-      <PageHead eyebrow={eyebrow(view)} title={title(view, days, cur)} />
+      <PageHead eyebrow={eyebrow(view, days)} title={title(view, days, cur)} />
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <IBtn icon="left" label="Previous" onPress={() => go(-1)} />
         <IBtn icon="right" label="Next" onPress={() => go(1)} />

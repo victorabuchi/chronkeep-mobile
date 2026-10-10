@@ -10,6 +10,15 @@ test('views show 3 days from the current one, one day, or leave a month to its o
   expect(daysFor('month', '2026-10-10', s)).toEqual([]);
 });
 
+test('a week is seven days from the week-start day, with its ISO week number', () => {
+  expect(daysFor('week', '2026-10-14', s)).toEqual(['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18']);
+  expect(daysFor('week', '2026-10-18', s)[0]).toBe('2026-10-12'); // Sunday belongs to the week before it ends
+  expect(daysFor('week', '2026-10-14', { ...s, weekStart: 0 })[0]).toBe('2026-10-11');
+  expect(eyebrow('week', daysFor('week', '2026-10-14', s))).toBe('Week 42');
+  expect(step('week', '2026-10-14', 1)).toBe('2026-10-21');
+  expect(title('week', daysFor('week', '2026-10-14', s), '2026-10-14')).toBe('October 12 to 18, 2026');
+});
+
 test('a month starts on the week-start day and has just the weeks it needs', () => {
   const w = monthWeeks('2026-10-10', s); // October 2026 starts on a Thursday
   expect(w).toHaveLength(5);
