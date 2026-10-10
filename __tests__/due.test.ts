@@ -1,5 +1,5 @@
 import { defaultSettings } from '../lib/defaults';
-import { groupDue, mergeEntries, splitDay, stripOf } from '../lib/due';
+import { groupDue, mergeEntries, splitDay, stripOf, upcomingEvents } from '../lib/due';
 import { newItem } from '../lib/items';
 
 const s = defaultSettings();
@@ -37,4 +37,11 @@ test('a day splits into hours and strip: timed events go in the hours, deadlines
 test('tasks that share a title and day merge into one row', () => {
   const m = mergeEntries([{ it: task('a', 'Attendance'), ds: '2026-10-13' }, { it: task('b', 'Attendance'), ds: '2026-10-13' }, { it: task('c', 'Attendance'), ds: '2026-10-14' }]);
   expect(m.map((g) => g.map((o) => o.it.id))).toEqual([['a', 'b'], ['c']]);
+});
+
+test('the Events tab lists events starting in the next 30 days that are not over, grouped by when', () => {
+  const now = new Date('2026-10-12T09:00:00').getTime();
+  const ev = (id: string, date: string, time: string, endTime: string) => newItem({ id, type: 'event', title: id, date, time, endTime });
+  const r = upcomingEvents([ev('over', '2026-10-12', '07:00', '08:00'), ev('now', '2026-10-12', '08:00', '10:00'), ev('tomorrow', '2026-10-13', '09:00', '10:00'), ev('later', '2026-10-30', '09:00', '10:00'), ev('far', '2026-12-30', '09:00', '10:00'), task('t', 'Not an event')], now);
+  expect(r.map(([name, l]) => [name, l.map((x) => x.it.id)])).toEqual([['Today', ['now']], ['Tomorrow', ['tomorrow']], ['Later', ['later']]]);
 });

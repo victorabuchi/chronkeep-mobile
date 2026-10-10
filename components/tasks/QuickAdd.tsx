@@ -24,7 +24,7 @@ export function fromText(text: string, s: Settings, fb: Fallback = {}): Partial<
 export default function QuickAdd({ settings }: { settings: Settings }) {
   const { c } = useTheme();
   const toast = useToast();
-  const [text, setText] = useState(''), [type, setType] = useState<'assignment' | 'todo'>('assignment'), [date, setDate] = useState(''), [time, setTime] = useState('');
+  const [text, setText] = useState(''), [type, setType] = useState<'assignment' | 'todo' | 'event'>('assignment'), [date, setDate] = useState(''), [time, setTime] = useState('');
   const fb: Fallback = { type, date, time };
   const prev = text.trim() ? fromText(text, settings, fb) : null;
   const submit = () => {
@@ -43,7 +43,7 @@ export default function QuickAdd({ settings }: { settings: Settings }) {
       <Input value={text} onChangeText={setText} placeholder="Try: Robotics report due Sunday 11pm" returnKeyType="done" onSubmitEditing={submit} autoCorrect={false} />
       {prev && prev._found.length ? <Txt style={{ fontSize: 12, color: c.b, fontWeight: '600' }}>Reads as {prev._label}</Txt> : null}
       <View style={{ flexDirection: 'row', gap: 6 }}>
-        <View style={{ flex: 1 }}><Select value={type} onChange={(v) => setType(v as 'assignment' | 'todo')} label="Type" options={[{ id: 'assignment', label: 'Assignment' }, { id: 'todo', label: 'To-do' }]} /></View>
+        <View style={{ flex: 1 }}><Select value={type} onChange={(v) => setType(v as 'assignment' | 'todo' | 'event')} label="Type" options={[{ id: 'assignment', label: 'Assignment' }, { id: 'todo', label: 'To-do' }, { id: 'event', label: 'Event' }]} /></View>
         <View style={{ flex: 1 }}><DateField value={date} onChange={setDate} placeholder="Date" clearable /></View>
         <View style={{ flex: 1 }}><TimeField value={time} onChange={setTime} placeholder="Time" clearable /></View>
       </View>

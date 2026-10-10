@@ -1,4 +1,4 @@
-import { segment } from './recur';
+import { segment, startFor, ymd } from './recur';
 import { matchesFilter, showsOn, type TaskEntry } from './selectors';
 import { lanes } from './calendar-layout';
 import type { Item, Settings } from './types';
@@ -63,4 +63,16 @@ export function mergeEntries(list: TaskEntry[]): TaskEntry[][] {
     if (g) g.push(o); else { const n = [o]; seen.set(k, n); out.push(n); }
   }
   return out;
+}
+
+// The Events tab on the Tasks page: events starting in the next 30 days (not yet over), grouped like the tasks are.
+export function upcomingEvents(items: Item[], now: number, days = 30): Array<[string, Array<{ it: Item; ds: string }>]> {
+  const B: Record<string, Array<{ it: Item; ds: string }>> = { Today: [], Tomorrow: [], 'This week': [], Later: [] };
+  const base = new Date(now);
+  for (let i = 0; i <= days; i++) {
+    const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i), ds = ymd(d);
+    const todays = items.filter((it) => it.type === 'event' && showsOn(it, ds) && startFor(it, ds) === ds && (!it.time || new Date(`${ds}T${it.endTime || it.time}:00`).getTime() >= now)).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    for (const it of todays) B[i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : i <= 7 ? 'This week' : 'Later']!.push({ it, ds });
+  }
+  return Object.entries(B).filter(([, l]) => l.length);
 }
