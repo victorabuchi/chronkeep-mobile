@@ -15,6 +15,13 @@ const hex = (c: string) => {
 const toHex = (r: number, g: number, b: number) => '#' + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
 
 // p of `a` over `b`, like color-mix(in srgb, a p%, b).
+// White or near-black text, whichever reads better on a solid fill of this colour (the web's fgOn).
+export function fgOn(hex: string): string {
+  const h = hex.replace('#', ''), v = h.length === 3 ? h.replace(/./g, '$&$&') : h, n = parseInt(v, 16) || 0;
+  const l = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return l > 0.62 ? '#111827' : '#ffffff';
+}
+
 export function mix(a: string, b: string, p: number): string {
   const [ar, ag, ab] = hex(a), [br, bg, bb] = hex(b);
   return toHex(ar * p + br * (1 - p), ag * p + bg * (1 - p), ab * p + bb * (1 - p));
