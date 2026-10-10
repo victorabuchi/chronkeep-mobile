@@ -38,10 +38,9 @@ export default function TimeGrid({ days, items, settings, typeF, now, width, hei
     return { ds, due, timed: lanes(timed) };
   }), [days, items, typeF, top0, lim]);
 
-  // Open at the current hour (or the start of the day when today is not shown).
+  // Always open at the start of the day (7:00 by default), so the view looks the same every time it opens.
   useEffect(() => {
-    const m = new Date(now).getHours() * 60 + new Date(now).getMinutes();
-    const y = days.includes(todayS) ? Math.max(0, ((m - top0) / 60) * HH - height * 0.4) : 0;
+    const y = 0;
     const t = setTimeout(() => {
       scroller.current?.scrollTo({ y, animated: false });
       if (wide) { const i = days.indexOf(todayS), x = i > 0 ? Math.min(i * colW, days.length * colW - (width - GUTTER)) : 0; bodyScroll.current?.scrollTo({ x, animated: false }); headScroll.current?.scrollTo({ x, animated: false }); }
