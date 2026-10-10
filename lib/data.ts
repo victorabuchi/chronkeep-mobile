@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { phoneFs, ROOT } from './fs';
 import { dropExpiredBin } from './actions';
 import { syncNotifications } from './notify';
+import { seed } from './seed';
 import { createStore, emptyData } from './store';
 import type { AppData } from './types';
 
@@ -60,6 +61,7 @@ export async function initData(): Promise<void> {
   const loaded = await store.load();
   if (loaded.keptAs) loadNote = `Your data file was damaged. It was kept aside${loaded.recoveredFrom ? ` and ${loaded.recoveredFrom} was loaded instead` : ', and ChronKeep started empty'}.`;
   state = dropExpiredBin(loaded.data);
+  if (process.env.EXPO_PUBLIC_SEED === '1' && !state.items.length) state = seed(state);
   await store.dailyBackup().catch(() => undefined);
   ready = true;
   emit();

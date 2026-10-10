@@ -11,6 +11,7 @@ import { useTheme } from '../lib/theme-context';
 import { openItem, setUI } from '../lib/ui-state';
 import I from './Icon';
 import Mark from './Mark';
+import NotifBanner from './NotifBanner';
 import NoteSheet from './topbar/NoteSheet';
 import NotifSheet from './topbar/NotifSheet';
 import SearchBar from './topbar/SearchBar';
@@ -46,6 +47,7 @@ export default function TopBar() {
           </>
         ) : null}
       </View>
+      <NotifBanner />
       <NoteSheet open={note} onClose={() => setNote(false)} />
       <NotifSheet open={bell} onClose={() => setBell(false)} />
       <Sheet open={menu} onClose={() => setMenu(false)} title={profile.name || 'Your account'}>
