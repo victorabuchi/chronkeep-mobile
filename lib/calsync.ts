@@ -54,6 +54,8 @@ export function applyEvents(db: Db, source: Source, events: ics.ParsedEvent[], {
     const it = existing.get(ev.key), f = fieldsOf(ev, source.kind);
     if (!it) {
       const item = newItem({ reminders: [...reminders], nudges: nudges.map((r) => ({ ...r })), category: source.category || '', ...f, source: { feed: source.id, key: ev.key } });
+      // a deadline that had already passed when we first saw it was dealt with long ago: start it ticked off
+      if (source.kind === 'assignment' && f.date && f.date < today) { item.done = true; item.doneAt = Date.now(); }
       prime(item); db.items.push(item); res.created++;
     } else if (FIELDS.some((k) => (it[k] || '') !== (f[k] || ''))) {
       const timeChanged = it.date !== f.date || it.time !== f.time, retyped = it.type !== f.type;
