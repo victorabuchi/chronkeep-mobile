@@ -34,7 +34,7 @@ export default function TaskRow({ it, ds, settings, now, onOpen, onTick, onStep,
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 8, rowGap: 3 }}>
           <Txt style={{ ...meta, fontSize: 11, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' }}>{typeLabel(it.type)}</Txt>
-          {it.category ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /><Txt style={meta}>{it.category}</Txt></View> : null}
+          {it.category ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /><Txt style={meta}>{it.category}{it.subject ? ` · ${it.subject}` : ''}</Txt></View> : null}
           {ds ? <Txt style={meta}>{DOW[day(ds).getDay()]} {day(ds).getDate()} {MON[day(ds).getMonth()]!.slice(0, 3)}{(() => { const t = group && group.length > 1 ? [...new Set(group.map((x) => x.time).filter(Boolean))].sort().join(', ') : it.time; return t ? `, ${t}` : ''; })()}</Txt> : null}
           {ds && !done ? (() => { const [t, k] = rel(dueAt(it, ds, settings), now); return <Pill tone={k}>{t}</Pill>; })() : null}
           {rule ? <Pill tone="nudge">every {everyLabel(rule.every)}</Pill> : null}

@@ -35,7 +35,7 @@ export default function TaskCard({ it, ds, settings, now, onOpen, onTick, onStep
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 12, rowGap: 4 }}>
             {ds ? <Txt style={{ fontSize: 12.5, color: c.muted, fontWeight: '600' }}><Txt style={{ fontSize: 12.5, fontWeight: '800' }}>{DOW[day(ds).getDay()]} {day(ds).getDate()} {MON[day(ds).getMonth()]!.slice(0, 3)}{(() => { const t = group && group.length > 1 ? [...new Set(group.map((x) => x.time).filter(Boolean))].sort().join(', ') : it.time; return t ? `, ${t}` : ''; })()}</Txt>{relText ? <Txt style={{ fontSize: 12.5, fontWeight: '700', color: relKind === 'late' ? c.neg : relKind === 'soon' ? c.warn : c.muted }}>{` · ${relText}`}</Txt> : null}</Txt> : <Txt style={{ fontSize: 12.5, color: c.muted, fontWeight: '600' }}>No date</Txt>}
-            {it.category ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /><Txt style={{ fontSize: 12.5, color: c.muted, fontWeight: '600' }}>{it.category}</Txt></View> : null}
+            {it.category ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /><Txt style={{ fontSize: 12.5, color: c.muted, fontWeight: '600' }}>{it.category}{it.subject ? ` · ${it.subject}` : ''}</Txt></View> : null}
             {prio ? <Txt style={{ fontSize: 12.5, fontWeight: '800', color: prio[1] === 'neg' ? c.neg : prio[1] === 'warn' ? c.warn : prio[1] }}>{prio[0]} priority</Txt> : null}
             {isRepeat(it) ? <Txt style={{ fontSize: 12.5, color: c.muted, fontWeight: '600' }}>↻ {it.repeat}</Txt> : null}
           </View>

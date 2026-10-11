@@ -20,7 +20,7 @@ export default function AssignmentBlock({ group, ds, settings, now, top, height,
         {many ? <View style={{ minWidth: 17, height: 16, paddingHorizontal: 4, borderRadius: 8, alignItems: 'center', justifyContent: 'center', backgroundColor: fg === '#ffffff' ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.45)' }}><Txt style={{ color: fg, fontSize: 10.5, lineHeight: 13, fontWeight: '800' }}>{group.length}</Txt></View> : null}
       </View>
       <Txt numberOfLines={Math.max(1, Math.floor((height - 24) / 16))} style={{ fontSize: 12.5, lineHeight: 16, fontWeight: '700', color: fg, textDecorationLine: done ? 'line-through' : 'none' }}>{it.title}</Txt>
-      {it.category && height > 64 ? <Txt numberOfLines={1} style={{ fontSize: 11, lineHeight: 14, fontWeight: '600', color: fg, opacity: 0.8 }}>{it.category}</Txt> : null}
+      {it.category && height > 64 ? <Txt numberOfLines={1} style={{ fontSize: 11, lineHeight: 14, fontWeight: '600', color: fg, opacity: 0.8 }}>{it.subject || it.category}</Txt> : null}
     </Pressable>
   );
 }

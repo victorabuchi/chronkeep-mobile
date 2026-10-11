@@ -18,8 +18,6 @@ import { Btn, Chip, Field, IBtn, Input, Note, Segment, Select, Sheet, Txt, useTo
 
 const TYPES: Array<{ id: ItemType; label: string }> = [{ id: 'assignment', label: 'Assignment' }, { id: 'event', label: 'Event' }, { id: 'todo', label: 'To-do' }];
 const PRIOS: Array<{ id: Priority; label: string }> = [{ id: '', label: 'None' }, { id: 'low', label: 'Low' }, { id: 'medium', label: 'Medium' }, { id: 'high', label: 'High' }];
-const NEW_SUBJECT = '__new';
-const SUBJECT_COLORS = ['#7c5cf0', '#0ea5a4', '#e8590c', '#d6336c', '#2f9e44', '#1c7ed6', '#f59f00'];
 const REPEATS = [{ id: 'none', label: 'Never' }, { id: 'daily', label: 'Daily' }, { id: 'weekly', label: 'Weekly' }, { id: 'monthly', label: 'Monthly' }];
 
 export default function ItemSheet() {
@@ -40,15 +38,10 @@ function Form({ sheet, open }: { sheet: NonNullable<SheetState>; open: boolean }
   const [scope, setScope] = useState<'all' | 'this'>('all');
   const [title, setTitle] = useState(it?.title ?? '');
   const [category, setCategory] = useState(it?.category ?? preset.category ?? '');
-  // Naming a new subject without leaving the form.
-  const [naming, setNaming] = useState(false), [subject, setSubject] = useState(''), [subjectColor, setSubjectColor] = useState(() => SUBJECT_COLORS.find((x) => !s.categories.some((k) => k.color.toLowerCase() === x)) ?? SUBJECT_COLORS[0]!);
-  const addSubject = () => {
-    const name = subject.trim();
-    if (!name) return;
-    const have = s.categories.find((k) => k.name.toLowerCase() === name.toLowerCase());
-    if (!have) commands.setSettings({ categories: [...s.categories, { name, color: subjectColor }] });
-    setCategory(have ? have.name : name); setNaming(false); setSubject('');
-  };
+  // Under Study, say which subject it is for; subjects used before are offered as chips.
+  const [subject, setSubject] = useState(it?.subject ?? '');
+  const items = useData((d) => d.items), study = category.trim().toLowerCase() === 'study';
+  const usedSubjects = [...new Set(items.filter((x) => (x.category || '').toLowerCase() === 'study' && x.subject).map((x) => x.subject!))].sort((p, q) => p.localeCompare(q));
   const [date, setDate] = useState(it ? it.date : preset.date ?? ymd(new Date()));
   const [time, setTime] = useState(it ? it.time : preset.time ?? (type === 'assignment' ? s.dueTime : ''));
   const [endTime, setEndTime] = useState(it?.endTime ?? preset.endTime ?? '');
@@ -80,7 +73,7 @@ function Form({ sheet, open }: { sheet: NonNullable<SheetState>; open: boolean }
   const save = async () => {
     if (!title.trim()) { setErr('Give it a title.'); return; }
     const t = type === 'assignment' && date && !time ? s.dueTime : time;
-    const body: Partial<Item> = { type, title: title.trim(), category, date, time: t, endTime: ev ? endTime : '', endDate: ev ? endDate : '', location: ev ? location.trim() : '', reminders: [...rem].sort((a, b) => b - a), nudges: nud.map((r) => ({ ...r })), repeat, repeatUntil: repeat === 'none' ? '' : until, notes, priority: ev ? '' : priority, subtasks: ev ? [] : subs.filter((x) => x.text.trim()).map((x) => ({ id: x.id, text: x.text.trim(), done: !!x.done })) };
+    const body: Partial<Item> = { type, title: title.trim(), category, subject: study ? subject.trim() : '', date, time: t, endTime: ev ? endTime : '', endDate: ev ? endDate : '', location: ev ? location.trim() : '', reminders: [...rem].sort((a, b) => b - a), nudges: nud.map((r) => ({ ...r })), repeat, repeatUntil: repeat === 'none' ? '' : until, notes, priority: ev ? '' : priority, subtasks: ev ? [] : subs.filter((x) => x.text.trim()).map((x) => ({ id: x.id, text: x.text.trim(), done: !!x.done })) };
     if (body.endDate && body.date && body.endDate <= body.date) body.endDate = '';
     // An end time earlier than the start means it ends the next day.
     if (ev && body.time && body.endTime && !body.endDate && body.date && toMin(body.endTime) <= toMin(body.time)) body.endDate = ymd(addDays(day(body.date), 1));
@@ -140,21 +133,13 @@ function Form({ sheet, open }: { sheet: NonNullable<SheetState>; open: boolean }
         {occ ? <Segment options={[{ id: 'all', label: 'Whole series' }, { id: 'this', label: 'Only this one' }]} value={scope} onChange={pickScope} wide /> : null}
         {occ && one ? <Note>Changes apply only to the occurrence on {fmtDay(occ)}. The rest of the series stays as it is.</Note> : null}
         <Field label="Title"><Input value={title} onChangeText={(v) => { setTitle(v); setErr(''); }} placeholder="e.g. Web Programming essay" autoFocus={!it} />{err ? <Txt style={{ color: c.neg, fontSize: 12, marginTop: 4 }}>{err}</Txt> : null}</Field>
-        <Field label="Course or subject">
-          <Select label="Course" value={category} onChange={(v) => (v === NEW_SUBJECT ? setNaming(true) : setCategory(v))} options={[{ id: '', label: 'None' }, ...s.categories.map((x) => ({ id: x.name, label: x.name })), { id: NEW_SUBJECT, label: '+ Add a subject...' }]} />
-          {naming ? (
-            <View style={{ gap: 10, marginTop: 8 }}>
-              <Input value={subject} onChangeText={setSubject} placeholder="Subject name, e.g. Web Programming" maxLength={40} autoFocus returnKeyType="done" onSubmitEditing={addSubject} />
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ flexDirection: 'row', gap: 8, flex: 1, flexWrap: 'wrap' }}>
-                  {SUBJECT_COLORS.map((col) => <Pressable key={col} onPress={() => setSubjectColor(col)} accessibilityRole="button" accessibilityLabel={`Colour ${col}`} style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: col, borderWidth: 2, borderColor: subjectColor === col ? c.ink : 'transparent' }} />)}
-                </View>
-                <Btn small variant="ghost" onPress={() => setNaming(false)}>Cancel</Btn>
-                <Btn small onPress={addSubject}>Add</Btn>
-              </View>
-            </View>
-          ) : null}
-        </Field>
+        <Field label="Course"><Select label="Course" value={category} onChange={setCategory} options={[{ id: '', label: 'None' }, ...s.categories.map((x) => ({ id: x.name, label: x.name }))]} /></Field>
+        {study ? (
+          <Field label="Subject">
+            <Input value={subject} onChangeText={setSubject} placeholder="Which subject? e.g. Web Programming" maxLength={60} autoCorrect={false} />
+            {usedSubjects.length ? <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>{usedSubjects.map((n) => <Chip key={n} on={n === subject.trim()} onPress={() => setSubject(n === subject.trim() ? '' : n)}>{n}</Chip>)}</View> : null}
+          </Field>
+        ) : null}
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <View style={{ flex: 1 }}><Field label={lbl.date}><DateField value={date} onChange={setDate} clearable={type === 'todo'} /></Field></View>
           <View style={{ flex: 1 }}><Field label={lbl.time}><TimeField value={time} onChange={setTime} clearable /></Field></View>

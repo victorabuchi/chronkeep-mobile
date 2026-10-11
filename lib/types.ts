@@ -21,6 +21,7 @@ export type Item = {
   endTime: string;
   endDate: string;
   category: string;
+  subject?: string; // under Study: which subject it is for
   priority: Priority;
   subtasks: Subtask[];
   attachments: Attachment[];

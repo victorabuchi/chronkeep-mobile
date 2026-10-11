@@ -88,7 +88,7 @@ export function applyAction(d: AppData, itemId: string, ds: string, action: 'don
 
 // "Only this one": take a single occurrence out of a repeating series. The series skips that day and a separate,
 // non-repeating item takes its place, carrying whatever changes were made.
-const ALLOWED = ['type', 'title', 'notes', 'location', 'date', 'time', 'endTime', 'endDate', 'category', 'reminders', 'nudges', 'priority', 'subtasks'] as const;
+const ALLOWED = ['type', 'title', 'notes', 'location', 'date', 'time', 'endTime', 'endDate', 'category', 'subject', 'reminders', 'nudges', 'priority', 'subtasks'] as const;
 export function detachOccurrence(d: AppData, id: string, occ: string, patch: Partial<Item> = {}, now = Date.now()): R<{ original: Item | null; created: Item | null }> {
   const orig = d.items.find((x) => x.id === id);
   if (!orig || !isRepeat(orig) || !/^\d{4}-\d{2}-\d{2}$/.test(occ)) return { data: d, original: null, created: null };
