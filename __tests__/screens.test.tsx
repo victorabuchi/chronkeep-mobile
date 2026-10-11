@@ -23,6 +23,9 @@ import { removeItem } from '../lib/commands';
 
 const wrap = (ui: ReactNode) => <ThemeProvider><ToastProvider>{ui}</ToastProvider></ThemeProvider>;
 
+// The seed is relative to today, so pin the date and time (a Wednesday, 13:00) or the checks drift with the day of the week.
+jest.useFakeTimers({ now: new Date(2026, 9, 14, 13, 0), doNotFake: ['setTimeout', 'setInterval', 'setImmediate', 'clearTimeout', 'clearInterval', 'clearImmediate', 'nextTick', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'performance'] });
+
 beforeEach(() => replaceAll(seed(emptyData())));
 
 test('Tasks groups what is owed and shows steps', async () => {
