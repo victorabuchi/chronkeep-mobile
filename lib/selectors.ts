@@ -42,7 +42,7 @@ export function rel(due: number, now: number): [string, 'late' | 'soon' | 'ok'] 
   return ms < 0 ? [`${t} overdue`, 'late'] : [`in ${t}`, h < 24 ? 'soon' : 'ok'];
 }
 
-export const EVERY: Array<[number, string]> = [[5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 hour'], [120, '2 hours'], [180, '3 hours'], [360, '6 hours'], [720, '12 hours']];
+export const EVERY: Array<[number, string]> = [[5, '5 min'], [10, '10 min'], [15, '15 min'], [20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '1 hour'], [120, '2 hours'], [180, '3 hours'], [360, '6 hours'], [720, '12 hours'], [1440, '1 day']];
 export const everyLabel = (m: number) => (EVERY.find(([v]) => v === +m) ?? [0, `${m} min`])[1];
 export const nudgeNow = (it: Item, ds: string, s: Settings, now: number) => activeRule(it, dueAt(it, ds, s), now);
 
